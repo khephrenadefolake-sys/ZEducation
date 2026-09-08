@@ -1649,12 +1649,14 @@ export default function App() {
   /* =======================================================
      FRANÇAIS
      ======================================================= */
-
   if (ecran === "FRANCAIS") {
-    const rubriquesAffichees =
-      estCP1
+    const rubriquesAffichees = estCP1
+      ? Array.isArray(rubriquesFrancaisCP1)
         ? rubriquesFrancaisCP1
-        : rubriquesFrancais;
+        : []
+      : Array.isArray(rubriquesFrancais)
+      ? rubriquesFrancais
+      : [];
 
     return (
       <SafeAreaView
@@ -1719,63 +1721,100 @@ export default function App() {
             Choisissez une rubrique
           </Text>
 
-          {rubriquesAffichees.map(
-            (rubrique, index) => (
-              <TouchableOpacity
-                key={
-                  rubrique?.id ||
-                  String(index)
-                }
-                style={
-                  styles.subjectCard
-                }
-                onPress={() =>
-                  ouvrirRubrique(
-                    rubrique
-                  )
-                }
-              >
-                <Text
-                  style={
-                    styles.subjectIcon
+          {rubriquesAffichees.length > 0 ? (
+            rubriquesAffichees.map(
+              (rubrique, index) => (
+                <TouchableOpacity
+                  key={
+                    rubrique?.id ||
+                    String(index)
                   }
-                >
-                  {rubrique?.icon ||
-                    "📖"}
-                </Text>
-
-                <View
                   style={
-                    styles.subjectInfo
+                    styles.subjectCard
+                  }
+                  onPress={() =>
+                    ouvrirRubrique(
+                      rubrique
+                    )
                   }
                 >
                   <Text
                     style={
-                      styles.subjectTitle
+                      styles.subjectIcon
                     }
                   >
-                    {rubrique?.nom ||
-                      "Rubrique"}
+                    {rubrique?.icon ||
+                      "📖"}
                   </Text>
 
-                  {rubrique?.description ? (
+                  <View
+                    style={
+                      styles.subjectInfo
+                    }
+                  >
                     <Text
                       style={
-                        styles.subjectDescription
+                        styles.subjectTitle
                       }
                     >
-                      {
-                        rubrique.description
-                      }
+                      {rubrique?.nom ||
+                        "Rubrique"}
                     </Text>
-                  ) : null}
 
-                  {rubrique?.progression ? (
-                    <Text
-                      style={
-                        styles.progressionMini
-                      }
-                    >
+                    {rubrique?.description ? (
+                      <Text
+                        style={
+                          styles.subjectDescription
+                        }
+                      >
+                        {
+                          rubrique.description
+                        }
+                      </Text>
+                    ) : null}
+
+                    {rubrique?.progression ? (
+                      <Text
+                        style={
+                          styles.progressionMini
+                        }
+                      >
+                        Progression :{" "}
+                        {
+                          rubrique.progression
+                        }
+                      </Text>
+                    ) : null}
+                  </View>
+                </TouchableOpacity>
+              )
+            )
+          ) : (
+            <View
+              style={styles.programCard}
+            >
+              <Text
+                style={
+                  styles.programTitle
+                }
+              >
+                Aucune rubrique disponible
+              </Text>
+
+              <Text
+                style={
+                  styles.programText
+                }
+              >
+                Les rubriques de cette matière
+                ne sont pas encore disponibles.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }                    >
                       Progression disponible
                     </Text>
                   ) : null}
