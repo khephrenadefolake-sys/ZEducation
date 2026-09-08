@@ -35,7 +35,11 @@ import {
 
 import { QUIZ } from "./src/data/quiz";
 import { obtenirContenu } from "./src/data/lecons";
-
+import {
+  RUBRIQUES_FRANCAIS_CP1,
+  RUBRIQUES_MATHS_CP1,
+  getCP1Lesson,
+} from "./src/data/CP1";
 export default function App() {
   // =========================================================
   // ÉTATS
