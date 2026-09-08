@@ -16,32 +16,268 @@ import Header from "./src/components/Header";
 
 import { NIVEAUX } from "./src/data/niveaux";
 
+/* =========================================================
+   MATIÈRES ET RUBRIQUES
+   ========================================================= */
+
 import {
   MATIERES_CP,
+  MATIERES_CP1,
+  MATIERES_CP2,
   MATIERES_CE_CM,
-  RUBRIQUES_CP,
+
+   RUBRIQUES_CP,
+  RUBRIQUES_CP2,
+  RUBRIQUES_FRANCAIS_CP1,
+  RUBRIQUES_MATHEMATIQUES_CP1,
   RUBRIQUES_CE_CM,
 } from "./src/data/matieres";
+
+/* =========================================================
+   PROGRAMME CM2
+   ========================================================= */
 
 import {
   CHAPITRES_CM2,
   PROGRAMMES_GRAMMAIRE,
 } from "./src/data/programmeCM2";
 
+/* =========================================================
+   DONNÉES GÉNÉRALES
+   ========================================================= */
+
 import { QUIZ } from "./src/data/quiz";
 import { obtenirContenu } from "./src/data/lecons";
-
 /* =========================================================
    DONNÉES CP1 PNAPAS
    ========================================================= */
 
 /*
  * Import global volontairement utilisé ici.
- * Cela évite qu'une exportation auxiliaire manquante dans
- * src/data/CP1/index.js fasse planter Babel au démarrage.
+ *
+ * Cela permet à App.js d'accéder aux données CP1 même si
+ * certaines exportations auxiliaires ne sont pas présentes
+ * dans src/data/CP1/index.js.
+ *
+ * Les données CP1 disponibles sont recherchées de manière
+ * sécurisée dans l'objet CP1_DATA.
  */
 import * as CP1_DATA from "./src/data/CP1";
 
+/* =========================================================
+   SÉCURISATION DES RUBRIQUES CP1
+   ========================================================= */
+
+/*
+ * Français CP1 :
+ * Pré-lecture
+ * Lecture-écriture
+ * Compréhension
+ * Expression orale
+ * Exercices
+ * Évaluation
+ */
+const rubriquesFrancaisCP1 =
+  Array.isArray(RUBRIQUES_FRANCAIS_CP1)
+    ? RUBRIQUES_FRANCAIS_CP1
+    : Array.isArray(CP1_DATA.RUBRIQUES_FRANCAIS_CP1)
+      ? CP1_DATA.RUBRIQUES_FRANCAIS_CP1
+      : [];
+
+/*
+ * Mathématiques CP1 :
+ * Nombres
+ * Calcul
+ * Géométrie
+ * Problèmes
+ */
+const rubriquesMathsCP1 =
+  Array.isArray(RUBRIQUES_MATHEMATIQUES_CP1)
+    ? RUBRIQUES_MATHEMATIQUES_CP1
+    : Array.isArray(CP1_DATA.RUBRIQUES_MATHEMATIQUES_CP1)
+      ? CP1_DATA.RUBRIQUES_MATHEMATIQUES_CP1
+      : [];
+
+/* =========================================================
+   DONNÉES COMPLÈTES CP1
+   ========================================================= */
+
+/*
+ * On récupère l'objet CP1 exporté par src/data/CP1/index.js
+ * lorsqu'il existe.
+ */
+const donneesCP1 =
+  CP1_DATA.CP1 &&
+  typeof CP1_DATA.CP1 === "object"
+    ? CP1_DATA.CP1
+    : {};
+
+/* =========================================================
+   FONCTION DE RECHERCHE D'UNE LEÇON CP1
+   ========================================================= */
+
+/*
+ * Recherche récursive d'une leçon dans les différentes
+ * structures de données CP1.
+ *
+ * La recherche accepte aussi bien :
+ *   - id
+ *   - code
+ *
+ * Cela rend App.js compatible avec les différents fichiers
+ * pédagogiques CP1.
+ */
+const chercherLeconDansDonnees = (
+  donnees,
+  identifiant
+) => {
+  if (!donnees || !identifiant) {
+    return null;
+  }
+
+  /* ---------------------------------------------
+     CAS 1 : tableau
+     --------------------------------------------- */
+  if (Array.isArray(donnees)) {
+    for (const item of donnees) {
+      if (!item) {
+        continue;
+      }
+
+      if (
+        item?.id === identifiant ||
+        item?.code === identifiant
+      ) {
+        return item;
+      }
+
+      const resultat =
+        chercherLeconDansDonnees(
+          item,
+          identifiant
+        );
+
+      if (resultat) {
+        return resultat;
+      }
+    }
+
+    return null;
+  }
+
+  /* ---------------------------------------------
+     CAS 2 : objet
+     --------------------------------------------- */
+  if (typeof donnees === "object") {
+    for (const cle of Object.keys(donnees)) {
+      const valeur = donnees[cle];
+
+      if (
+        valeur &&
+        typeof valeur === "object"
+      ) {
+        if (
+          valeur?.id === identifiant ||
+          valeur?.code === identifiant
+        ) {
+          return valeur;
+        }
+
+        const resultat =
+          chercherLeconDansDonnees(
+            valeur,
+            identifiant
+          );
+
+        if (resultat) {
+          return resultat;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+/* =========================================================
+   RÉCUPÉRATION SÉCURISÉE D'UNE LEÇON CP1
+   ========================================================= */
+
+const getLeconCP1 = (lecon) => {
+  if (!lecon) {
+    return null;
+  }
+
+  const identifiant =
+    lecon?.code || lecon?.id;
+
+  /*
+   * Si l'objet reçu contient déjà le contenu complet,
+   * on le conserve.
+   */
+  if (!identifiant) {
+    return lecon;
+  }
+
+  /* ---------------------------------------------
+     1. Fonction officielle éventuelle
+     --------------------------------------------- */
+  if (
+    typeof CP1_DATA.getCP1Lesson ===
+    "function"
+  ) {
+    try {
+      const resultat =
+        CP1_DATA.getCP1Lesson(
+          identifiant
+        );
+
+      if (resultat) {
+        return resultat;
+      }
+    } catch (error) {
+      /*
+       * En cas d'erreur, on continue avec la
+       * recherche locale.
+       */
+    }
+  }
+
+  /* ---------------------------------------------
+     2. Recherche dans les données CP1
+     --------------------------------------------- */
+  const resultatCP1 =
+    chercherLeconDansDonnees(
+      donneesCP1,
+      identifiant
+    );
+
+  if (resultatCP1) {
+    return resultatCP1;
+  }
+
+  /* ---------------------------------------------
+     3. Recherche dans les rubriques CP1
+     --------------------------------------------- */
+  const resultatRubriques =
+    chercherLeconDansDonnees(
+      [
+        ...rubriquesFrancaisCP1,
+        ...rubriquesMathsCP1,
+      ],
+      identifiant
+    );
+
+  if (resultatRubriques) {
+    return resultatRubriques;
+  }
+
+  /*
+   * Si aucune recherche ne trouve une autre version,
+   * on retourne la leçon reçue.
+   */
+  return lecon;
+};
 /* =========================================================
    APPLICATION
    ========================================================= */
@@ -131,9 +367,13 @@ export default function App() {
      MATIÈRES
      ======================================================= */
 
-  const matieres = estCP
-    ? Array.isArray(MATIERES_CP)
-      ? MATIERES_CP
+   const matieres = estCP1
+    ? Array.isArray(MATIERES_CP1)
+      ? MATIERES_CP1
+      : []
+    : estCP
+    ? Array.isArray(MATIERES_CP2)
+      ? MATIERES_CP2
       : []
     : Array.isArray(MATIERES_CE_CM)
     ? MATIERES_CE_CM
@@ -154,17 +394,25 @@ export default function App() {
     : [];
 
   /* =======================================================
-     RUBRIQUES MATHS CP1
+     RUBRIQUES MATHÉMATIQUES
      ======================================================= */
 
-  const rubriquesMaths = rubriquesMathsCP1;
+  const rubriquesMaths = estCP1
+    ? rubriquesMathsCP1
+    : estCP
+    ? Array.isArray(RUBRIQUES_CP2)
+      ? RUBRIQUES_CP2
+      : []
+    : [];
 
   /* =======================================================
      UTILITAIRES
      ======================================================= */
 
   const estMatiereFrancais = (matiere) => {
-    const id = String(matiere?.id || "").toLowerCase();
+    const id = String(
+      matiere?.id || ""
+    ).toLowerCase();
 
     return (
       id === "francais" ||
@@ -173,7 +421,9 @@ export default function App() {
   };
 
   const estMatiereMaths = (matiere) => {
-    const id = String(matiere?.id || "").toLowerCase();
+    const id = String(
+      matiere?.id || ""
+    ).toLowerCase();
 
     return (
       id === "maths" ||
@@ -181,7 +431,6 @@ export default function App() {
       id === "mathématiques"
     );
   };
-
   /* =======================================================
      RECHERCHE D'UNE RUBRIQUE CP1
      ======================================================= */
@@ -4127,7 +4376,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  scoreText: {
+    scoreText: {
     fontSize: 20,
     fontWeight: "800",
     color: "#173B57",
