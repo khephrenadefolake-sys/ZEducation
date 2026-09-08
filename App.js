@@ -1,9 +1,5 @@
-﻿import React, { useState } from "react";
-import {
-  RUBRIQUES_FRANCAIS_CP1,
-  RUBRIQUES_MATHS_CP1,
-  getCP1Lesson,
-} from "./src/data/CP1";
+```javascript
+import React, { useState } from "react";
 import {
   SafeAreaView,
   StatusBar,
@@ -35,15 +31,25 @@ import {
 
 import { QUIZ } from "./src/data/quiz";
 import { obtenirContenu } from "./src/data/lecons";
+
+/* =========================================================
+   DONNÉES CP1 PNAPAS
+   ========================================================= */
+
 import {
   RUBRIQUES_FRANCAIS_CP1,
   RUBRIQUES_MATHS_CP1,
   getCP1Lesson,
 } from "./src/data/CP1";
+
+/* =========================================================
+   APPLICATION
+   ========================================================= */
+
 export default function App() {
-  // =========================================================
-  // ÉTATS
-  // =========================================================
+  /* =======================================================
+     ÉTATS
+     ======================================================= */
 
   const [ecran, setEcran] = useState("WELCOME");
 
@@ -77,13 +83,17 @@ export default function App() {
   const [chapitreSelectionne, setChapitreSelectionne] =
     useState(null);
 
+  /* =======================================================
+     QUIZ
+     ======================================================= */
+
   const [quizIndex, setQuizIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [quizTermine, setQuizTermine] = useState(false);
 
-  // =========================================================
-  // NORMALISATION DU NIVEAU
-  // =========================================================
+  /* =======================================================
+     NORMALISATION DU NIVEAU
+     ======================================================= */
 
   const niveauNormalise = String(
     eleve?.niveau || niveauSelectionne || niveau || ""
@@ -91,28 +101,100 @@ export default function App() {
     .toUpperCase()
     .replace(/\s+/g, "");
 
+  const estCP1 = niveauNormalise === "CP1";
+
   const estCP =
     niveauNormalise === "CP1" ||
     niveauNormalise === "CP2" ||
     niveauNormalise.startsWith("CP");
 
-  // =========================================================
-  // MATIÈRES
-  // =========================================================
+  /* =======================================================
+     MATIÈRES
+     ======================================================= */
 
   const matieres = estCP ? MATIERES_CP : MATIERES_CE_CM;
 
-  // =========================================================
-  // RUBRIQUES FRANÇAIS
-  // =========================================================
+  /* =======================================================
+     RUBRIQUES FRANÇAIS
+     ======================================================= */
 
-  const rubriquesFrançais = estCP
+  const rubriquesFrançais = estCP1
+    ? RUBRIQUES_FRANCAIS_CP1
+    : estCP
     ? RUBRIQUES_CP
     : RUBRIQUES_CE_CM;
 
-  // =========================================================
-  // INSCRIPTION
-  // =========================================================
+  /* =======================================================
+     RUBRIQUES MATHS CP1
+     ======================================================= */
+
+  const rubriquesMathsCP1 = RUBRIQUES_MATHS_CP1 || [];
+
+  /* =======================================================
+     UTILITAIRES
+     ======================================================= */
+
+  const estMatiereFrançais = (matiere) =>
+    matiere?.id === "francais" ||
+    matiere?.id === "français";
+
+  const estMatiereMaths = (matiere) =>
+    matiere?.id === "maths" ||
+    matiere?.id === "mathematiques" ||
+    matiere?.id === "mathématiques";
+
+  const getRubriqueCP1 = (rubrique) => {
+    if (!rubrique?.id) return null;
+
+    const toutesRubriques = [
+      ...RUBRIQUES_FRANCAIS_CP1,
+      ...RUBRIQUES_MATHS_CP1,
+    ];
+
+    return (
+      toutesRubriques.find(
+        (item) => item?.id === rubrique.id
+      ) || rubrique
+    );
+  };
+
+  const getLeconsRubrique = (rubrique) => {
+    const rubriqueComplete = getRubriqueCP1(rubrique);
+
+    if (!rubriqueComplete) return [];
+
+    if (Array.isArray(rubriqueComplete.lecons)) {
+      return rubriqueComplete.lecons;
+    }
+
+    if (Array.isArray(rubriqueComplete.chapitres)) {
+      return rubriqueComplete.chapitres;
+    }
+
+    if (Array.isArray(rubriqueComplete.index)) {
+      return rubriqueComplete.index;
+    }
+
+    return [];
+  };
+
+  const getLeconCP1 = (lecon) => {
+    if (!lecon) return null;
+
+    if (lecon.code) {
+      return getCP1Lesson(lecon.code) || lecon;
+    }
+
+    if (lecon.id) {
+      return getCP1Lesson(lecon.id) || lecon;
+    }
+
+    return lecon;
+  };
+
+  /* =======================================================
+     INSCRIPTION
+     ======================================================= */
 
   const inscrireEleve = () => {
     const nomPropre = nom.trim();
@@ -210,9 +292,9 @@ export default function App() {
     );
   };
 
-  // =========================================================
-  // CONNEXION
-  // =========================================================
+  /* =======================================================
+     CONNEXION
+     ======================================================= */
 
   const connecter = () => {
     const emailSaisi = emailConnexion.trim().toLowerCase();
@@ -258,9 +340,9 @@ export default function App() {
     setEcran("ACCUEIL");
   };
 
-  // =========================================================
-  // RETOUR
-  // =========================================================
+  /* =======================================================
+     RETOUR
+     ======================================================= */
 
   const retourAccueil = () => {
     setMatiereSelectionnee(null);
@@ -279,62 +361,93 @@ export default function App() {
   const retourRubriques = () => {
     setRubriqueSelectionnee(null);
     setChapitreSelectionne(null);
-    setEcran("FRANCAIS");
+
+    if (estMatiereMaths(matiereSelectionnee)) {
+      setEcran("MATHEMATIQUES");
+    } else {
+      setEcran("FRANCAIS");
+    }
   };
 
-  // =========================================================
-  // OUVRIR UNE MATIÈRE
-  // =========================================================
+  /* =======================================================
+     OUVRIR UNE MATIÈRE
+     ======================================================= */
 
   const ouvrirMatiere = (matiere) => {
     setMatiereSelectionnee(matiere);
     setRubriqueSelectionnee(null);
     setChapitreSelectionne(null);
 
-    if (matiere.id === "francais") {
+    if (estMatiereFrançais(matiere)) {
       setEcran("FRANCAIS");
-    } else if (matiere.id === "mathematiques") {
-      setEcran("MATHEMATIQUES");
-    } else {
-      setEcran("MATIERE_DETAILS");
+      return;
     }
+
+    if (estMatiereMaths(matiere)) {
+      setEcran("MATHEMATIQUES");
+      return;
+    }
+
+    setEcran("MATIERE_DETAILS");
   };
 
-  // =========================================================
-  // OUVRIR UNE RUBRIQUE
-  // =========================================================
+  /* =======================================================
+     OUVRIR UNE RUBRIQUE
+     ======================================================= */
 
   const ouvrirRubrique = (rubrique) => {
-    setRubriqueSelectionnee(rubrique);
+    const rubriqueComplete = estCP1
+      ? getRubriqueCP1(rubrique)
+      : rubrique;
+
+    setRubriqueSelectionnee(rubriqueComplete);
+    setChapitreSelectionne(null);
     setEcran("RUBRIQUE");
   };
 
-  // =========================================================
-  // CONTENU D'UNE LEÇON
-  // =========================================================
+  /* =======================================================
+     OUVRIR UNE LEÇON
+     ======================================================= */
 
-  const ouvrirLecon = (chapitre) => {
-    setChapitreSelectionne(chapitre);
+  const ouvrirLecon = (lecon) => {
+    const leconComplete = estCP1
+      ? getLeconCP1(lecon)
+      : lecon;
+
+    setChapitreSelectionne(leconComplete);
     setEcran("LECON");
   };
 
-  // =========================================================
-  // PROGRAMME GRAMMAIRE
-  // =========================================================
+  /* =======================================================
+     PROGRAMME GRAMMAIRE
+     ======================================================= */
 
   const programmeGrammaire =
     PROGRAMMES_GRAMMAIRE?.[niveauNormalise] ||
     PROGRAMMES_GRAMMAIRE?.[eleve?.niveau] ||
     [];
 
-  // =========================================================
-  // QUIZ
-  // =========================================================
+  /* =======================================================
+     QUIZ
+     ======================================================= */
 
-  const banqueQuiz =
+  const banqueQuizGenerale =
     QUIZ?.[niveauNormalise] ||
     QUIZ?.[eleve?.niveau] ||
     (Array.isArray(QUIZ) ? QUIZ : []);
+
+  const leconActuelleCP1 = estCP1
+    ? getLeconCP1(chapitreSelectionne)
+    : null;
+
+  const banqueQuizCP1 =
+    leconActuelleCP1?.quiz ||
+    leconActuelleCP1?.questionsQuiz ||
+    [];
+
+  const banqueQuiz = estCP1
+    ? banqueQuizCP1
+    : banqueQuizGenerale;
 
   const questionQuiz = Array.isArray(banqueQuiz)
     ? banqueQuiz[quizIndex]
@@ -363,13 +476,9 @@ export default function App() {
     }
   };
 
-  // =========================================================
-  // PROTECTION DES ÉCRANS
-  // =========================================================
-  // IMPORTANT :
-  // INSCRIPTION et LOGIN doivent rester accessibles
-  // même lorsqu'aucun élève n'est encore connecté.
-  // =========================================================
+  /* =======================================================
+     PROTECTION DES ÉCRANS
+     ======================================================= */
 
   const ecransPublics = [
     "WELCOME",
@@ -387,9 +496,9 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // ÉCRAN WELCOME
-  // =========================================================
+  /* =======================================================
+     WELCOME
+     ======================================================= */
 
   if (ecran === "WELCOME") {
     return (
@@ -401,9 +510,9 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // INSCRIPTION
-  // =========================================================
+  /* =======================================================
+     INSCRIPTION
+     ======================================================= */
 
   if (ecran === "INSCRIPTION") {
     return (
@@ -572,9 +681,9 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // CONNEXION
-  // =========================================================
+  /* =======================================================
+     CONNEXION
+     ======================================================= */
 
   if (ecran === "LOGIN") {
     return (
@@ -642,9 +751,9 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // ACCUEIL
-  // =========================================================
+  /* =======================================================
+     ACCUEIL
+     ======================================================= */
 
   if (ecran === "ACCUEIL") {
     return (
@@ -661,7 +770,7 @@ export default function App() {
             <Text style={styles.welcomeTitle}>
               Bonjour{" "}
               {eleve?.prenoms
-                ? `${eleve.prenoms}`
+                ? eleve.prenoms
                 : eleve?.nom || "Élève"}{" "}
               👋
             </Text>
@@ -750,9 +859,9 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // MATIÈRES
-  // =========================================================
+  /* =======================================================
+     MATIÈRES
+     ======================================================= */
 
   if (ecran === "MATIERES") {
     return (
@@ -804,11 +913,15 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // FRANÇAIS
-  // =========================================================
+  /* =======================================================
+     FRANÇAIS CP1
+     ======================================================= */
 
   if (ecran === "FRANCAIS") {
+    const rubriquesAffichees = estCP1
+      ? RUBRIQUES_FRANCAIS_CP1
+      : rubriquesFrançais;
+
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" />
@@ -820,15 +933,33 @@ export default function App() {
 
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.pageTitle}>
-            Français
+            Français — {niveauNormalise}
           </Text>
+
+          {estCP1 && (
+            <View style={styles.programCard}>
+              <Text style={styles.programBadge}>
+                PNAPAS
+              </Text>
+
+              <Text style={styles.programTitle}>
+                Français CP1
+              </Text>
+
+              <Text style={styles.programText}>
+                Premiers apprentissages de la lecture,
+                de l'écriture, de la compréhension et
+                de l'expression orale.
+              </Text>
+            </View>
+          )}
 
           <Text style={styles.pageSubtitle}>
             Choisissez une rubrique
           </Text>
 
-          {Array.isArray(rubriquesFrançais) &&
-            rubriquesFrançais.map(
+          {Array.isArray(rubriquesAffichees) &&
+            rubriquesAffichees.map(
               (rubrique, index) => (
                 <TouchableOpacity
                   key={rubrique?.id || index}
@@ -845,6 +976,26 @@ export default function App() {
                     <Text style={styles.subjectTitle}>
                       {rubrique?.nom || "Rubrique"}
                     </Text>
+
+                    {rubrique?.description ? (
+                      <Text
+                        style={
+                          styles.subjectDescription
+                        }
+                      >
+                        {rubrique.description}
+                      </Text>
+                    ) : null}
+
+                    {rubrique?.progression ? (
+                      <Text
+                        style={
+                          styles.progressionMini
+                        }
+                      >
+                        Progression disponible
+                      </Text>
+                    ) : null}
                   </View>
 
                   <Text style={styles.arrow}>
@@ -858,38 +1009,35 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // MATHÉMATIQUES
-  // =========================================================
+  /* =======================================================
+     MATHÉMATIQUES CP1
+     ======================================================= */
 
   if (ecran === "MATHEMATIQUES") {
-    const rubriquesMaths = [
-      {
-        id: "nombres",
-        nom: "Nombres",
-        icon: "🔢",
-      },
-      {
-        id: "calcul",
-        nom: "Calcul",
-        icon: "➕",
-      },
-      {
-        id: "problemes",
-        nom: "Problèmes",
-        icon: "🧩",
-      },
-      {
-        id: "geometrie",
-        nom: "Géométrie",
-        icon: "📐",
-      },
-      {
-        id: "mesures",
-        nom: "Mesures",
-        icon: "📏",
-      },
-    ];
+    const rubriquesAffichees = estCP1
+      ? rubriquesMathsCP1
+      : [
+          {
+            id: "nombres",
+            nom: "Nombres",
+            icon: "🔢",
+          },
+          {
+            id: "calcul",
+            nom: "Calcul",
+            icon: "➕",
+          },
+          {
+            id: "problemes",
+            nom: "Problèmes",
+            icon: "🧩",
+          },
+          {
+            id: "geometrie",
+            nom: "Géométrie",
+            icon: "📐",
+          },
+        ];
 
     return (
       <SafeAreaView style={styles.container}>
@@ -902,31 +1050,60 @@ export default function App() {
 
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.pageTitle}>
-            Mathématiques
+            Mathématiques — {niveauNormalise}
           </Text>
+
+          {estCP1 && (
+            <View style={styles.programCard}>
+              <Text style={styles.programBadge}>
+                PNAPAS
+              </Text>
+
+              <Text style={styles.programTitle}>
+                Mathématiques CP1
+              </Text>
+
+              <Text style={styles.programText}>
+                Nombres, calcul, géométrie et résolution
+                de problèmes.
+              </Text>
+            </View>
+          )}
 
           <Text style={styles.pageSubtitle}>
             Choisissez une rubrique
           </Text>
 
-          {rubriquesMaths.map(
-            (rubrique) => (
+          {rubriquesAffichees.map(
+            (rubrique, index) => (
               <TouchableOpacity
-                key={rubrique.id}
+                key={
+                  rubrique?.id || index
+                }
                 style={styles.subjectCard}
-                onPress={() => {
-                  setRubriqueSelectionnee(rubrique);
-                  setEcran("RUBRIQUE");
-                }}
+                onPress={() =>
+                  ouvrirRubrique(rubrique)
+                }
               >
                 <Text style={styles.subjectIcon}>
-                  {rubrique.icon}
+                  {rubrique?.icon || "📚"}
                 </Text>
 
                 <View style={styles.subjectInfo}>
                   <Text style={styles.subjectTitle}>
-                    {rubrique.nom}
+                    {rubrique?.nom ||
+                      "Rubrique"}
                   </Text>
+
+                  {rubrique?.description ? (
+                    <Text
+                      style={
+                        styles.subjectDescription
+                      }
+                    >
+                      {rubrique.description}
+                    </Text>
+                  ) : null}
                 </View>
 
                 <Text style={styles.arrow}>
@@ -940,9 +1117,9 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // AUTRES MATIÈRES CE1 → CM2
-  // =========================================================
+  /* =======================================================
+     AUTRES MATIÈRES
+     ======================================================= */
 
   if (ecran === "MATIERE_DETAILS") {
     return (
@@ -979,58 +1156,70 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // RUBRIQUE
-  // =========================================================
+  /* =======================================================
+     RUBRIQUE CP1
+     ======================================================= */
 
   if (ecran === "RUBRIQUE") {
     const rubrique = rubriqueSelectionnee;
 
-    let contenus = [];
+    const contenus = estCP1
+      ? getLeconsRubrique(rubrique)
+      : (() => {
+          let resultat = [];
 
-    if (
-      rubrique?.id === "grammaire" &&
-      Array.isArray(programmeGrammaire)
-    ) {
-      contenus = programmeGrammaire;
-    }
+          if (
+            rubrique?.id === "grammaire" &&
+            Array.isArray(programmeGrammaire)
+          ) {
+            resultat = programmeGrammaire;
+          }
 
-    if (
-      rubrique?.id === "lecture" ||
-      rubrique?.id === "ecriture" ||
-      rubrique?.id === "vocabulaire" ||
-      rubrique?.id === "expression" ||
-      rubrique?.id === "expression_orale"
-    ) {
-      try {
-        const resultat = obtenirContenu?.(
-          niveauNormalise,
-          "francais",
-          rubrique.id
-        );
+          if (
+            rubrique?.id === "lecture" ||
+            rubrique?.id === "ecriture" ||
+            rubrique?.id === "vocabulaire" ||
+            rubrique?.id === "expression" ||
+            rubrique?.id === "expression_orale"
+          ) {
+            try {
+              const contenu =
+                obtenirContenu?.(
+                  niveauNormalise,
+                  "francais",
+                  rubrique.id
+                );
 
-        if (Array.isArray(resultat)) {
-          contenus = resultat;
-        }
-      } catch (error) {
-        contenus = [];
-      }
-    }
+              if (Array.isArray(contenu)) {
+                resultat = contenu;
+              }
+            } catch (error) {
+              resultat = [];
+            }
+          }
 
-    if (!contenus.length) {
-      contenus = [
-        {
-          id: "1",
-          titre: `Programme de ${
-            rubrique?.nom || ""
-          }`,
-          description:
-            `Découvrez les leçons et exercices de la rubrique ${
-              rubrique?.nom || ""
-            }.`,
-        },
-      ];
-    }
+          return resultat;
+        })();
+
+    const listeFinale =
+      contenus.length > 0
+        ? contenus
+        : [
+            {
+              id: "vide",
+              titre: "Contenu à venir",
+              description:
+                "Le contenu détaillé de cette rubrique sera affiché ici.",
+            },
+          ];
+
+    const progression = rubrique?.progression;
+
+    const indexRubrique = Array.isArray(
+      rubrique?.index
+    )
+      ? rubrique.index
+      : [];
 
     return (
       <SafeAreaView style={styles.container}>
@@ -1041,36 +1230,121 @@ export default function App() {
             rubrique?.nom ||
             "Rubrique"
           }
-          onBack={
-            matiereSelectionnee?.id ===
-            "mathematiques"
-              ? () =>
-                  setEcran("MATHEMATIQUES")
-              : retourRubriques
-          }
+          onBack={retourRubriques}
         />
 
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.pageTitle}>
-            {rubrique?.nom}
+            {rubrique?.nom ||
+              "Rubrique"}
           </Text>
 
-          {contenus.map(
+          {rubrique?.description ? (
+            <Text style={styles.pageSubtitle}>
+              {rubrique.description}
+            </Text>
+          ) : null}
+
+          {estCP1 && (
+            <>
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>
+                  INDEX
+                </Text>
+
+                {indexRubrique.length > 0 ? (
+                  indexRubrique.map(
+                    (item, index) => (
+                      <Text
+                        key={index}
+                        style={styles.indexText}
+                      >
+                        {index + 1}.{" "}
+                        {typeof item === "string"
+                          ? item
+                          : item?.titre ||
+                            item?.nom ||
+                            item?.code ||
+                            "Élément"}
+                      </Text>
+                    )
+                  )
+                ) : (
+                  <Text style={styles.bulletText}>
+                    Le programme est organisé
+                    progressivement par chapitres
+                    et leçons.
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>
+                  PROGRESSION
+                </Text>
+
+                {Array.isArray(progression) ? (
+                  progression.map(
+                    (item, index) => (
+                      <Text
+                        key={index}
+                        style={styles.bulletText}
+                      >
+                        •{" "}
+                        {typeof item === "string"
+                          ? item
+                          : item?.titre ||
+                            item?.nom ||
+                            JSON.stringify(item)}
+                      </Text>
+                    )
+                  )
+                ) : (
+                  <Text style={styles.bulletText}>
+                    {progression ||
+                      "Progression pédagogique CP1 PNAPAS."}
+                  </Text>
+                )}
+              </View>
+            </>
+          )}
+
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitleInline}>
+              CHAPITRES ET LEÇONS
+            </Text>
+
+            <Text style={styles.countBadge}>
+              {contenus.length}
+            </Text>
+          </View>
+
+          {listeFinale.map(
             (contenu, index) => {
               const titre =
                 contenu?.titre ||
                 contenu?.nom ||
                 `Leçon ${index + 1}`;
 
+              const description =
+                contenu?.description ||
+                contenu?.objectif ||
+                "";
+
               return (
                 <TouchableOpacity
                   key={
+                    contenu?.code ||
                     contenu?.id ||
                     index
                   }
                   style={styles.lessonCard}
                   onPress={() =>
-                    ouvrirLecon(contenu)
+                    contenus.length > 0
+                      ? ouvrirLecon(
+                          contenu
+                        )
+                      : null
                   }
                 >
                   <View
@@ -1100,15 +1374,23 @@ export default function App() {
                       {titre}
                     </Text>
 
-                    {contenu?.description ? (
+                    {description ? (
                       <Text
                         style={
                           styles.lessonDescription
                         }
                       >
-                        {
-                          contenu.description
+                        {description}
+                      </Text>
+                    ) : null}
+
+                    {contenu?.code ? (
+                      <Text
+                        style={
+                          styles.codeText
                         }
+                      >
+                        {contenu.code}
                       </Text>
                     ) : null}
                   </View>
@@ -1122,40 +1404,237 @@ export default function App() {
               );
             }
           )}
+
+          {estCP1 &&
+            rubrique?.evaluation && (
+              <TouchableOpacity
+                style={
+                  styles.evaluationButton
+                }
+                onPress={() =>
+                  setEcran(
+                    "CP1_EVALUATION"
+                  )
+                }
+              >
+                <Text
+                  style={
+                    styles.evaluationIcon
+                  }
+                >
+                  📝
+                </Text>
+
+                <View
+                  style={
+                    styles.evaluationInfo
+                  }
+                >
+                  <Text
+                    style={
+                      styles.evaluationTitle
+                    }
+                  >
+                    ÉVALUATION
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.evaluationText
+                    }
+                  >
+                    Évaluer les acquis de cette
+                    rubrique
+                  </Text>
+                </View>
+
+                <Text
+                  style={styles.arrow}
+                >
+                  ›
+                </Text>
+              </TouchableOpacity>
+            )}
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // =========================================================
-  // LEÇON
-  // =========================================================
+  /* =======================================================
+     ÉVALUATION CP1
+     ======================================================= */
+
+  if (ecran === "CP1_EVALUATION") {
+    const rubrique = rubriqueSelectionnee;
+    const evaluation =
+      rubrique?.evaluation;
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+
+        <Header
+          title="Évaluation"
+          onBack={() =>
+            setEcran("RUBRIQUE")
+          }
+        />
+
+        <ScrollView contentContainerStyle={styles.content}>
+          <Text style={styles.pageTitle}>
+            Évaluation
+          </Text>
+
+          <Text style={styles.pageSubtitle}>
+            {rubrique?.nom || "CP1"}
+          </Text>
+
+          <View style={styles.evaluationMainCard}>
+            <Text style={styles.evaluationBigIcon}>
+              📝
+            </Text>
+
+            <Text style={styles.evaluationMainTitle}>
+              Évaluation des acquis
+            </Text>
+
+            <Text style={styles.evaluationMainText}>
+              {typeof evaluation ===
+              "string"
+                ? evaluation
+                : evaluation?.consigne ||
+                  evaluation?.description ||
+                  "Évaluation des compétences acquises dans cette rubrique."}
+            </Text>
+
+            {typeof evaluation ===
+              "object" &&
+            Array.isArray(
+              evaluation?.criteres
+            ) ? (
+              <View
+                style={
+                  styles.sectionCard
+                }
+              >
+                <Text
+                  style={
+                    styles.sectionTitle
+                  }
+                >
+                  Critères
+                </Text>
+
+                {evaluation.criteres.map(
+                  (critere, index) => (
+                    <Text
+                      key={index}
+                      style={
+                        styles.bulletText
+                      }
+                    >
+                      •{" "}
+                      {String(
+                        critere
+                      )}
+                    </Text>
+                  )
+                )}
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={
+                styles.primaryButton
+              }
+              onPress={() =>
+                setEcran("RUBRIQUE")
+              }
+            >
+              <Text
+                style={
+                  styles.primaryButtonText
+                }
+              >
+                RETOUR À LA RUBRIQUE
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  /* =======================================================
+     LEÇON
+     ======================================================= */
 
   if (ecran === "LECON") {
-    const chapitre =
-      chapitreSelectionne || {};
+    const lecon = estCP1
+      ? getLeconCP1(chapitreSelectionne)
+      : chapitreSelectionne || {};
 
     const titre =
-      chapitre.titre ||
-      chapitre.nom ||
+      lecon?.titre ||
+      lecon?.nom ||
       "Leçon";
 
-    const contenu =
-      chapitre.contenu ||
-      chapitre.description ||
-      "Contenu de la leçon.";
+    const objectif =
+      lecon?.objectif ||
+      "";
+
+    const explication =
+      lecon?.explication ||
+      lecon?.contenu ||
+      lecon?.description ||
+      "";
+
+    const regle =
+      lecon?.regle ||
+      "";
 
     const exemples = Array.isArray(
-      chapitre.exemples
+      lecon?.exemples
     )
-      ? chapitre.exemples
+      ? lecon.exemples
       : [];
 
-    const corriger = Array.isArray(
-      chapitre.corriges
+    const corriges = Array.isArray(
+      lecon?.corriges
     )
-      ? chapitre.corriges
+      ? lecon.corriges
       : [];
+
+    const retenir =
+      lecon?.retenir ||
+      "";
+
+    const decodables = Array.isArray(
+      lecon?.decodables
+    )
+      ? lecon.decodables
+      : [];
+
+    const manipulations =
+      Array.isArray(
+        lecon?.manipulations
+      )
+        ? lecon.manipulations
+        : [];
+
+    const exercices =
+      Array.isArray(
+        lecon?.exercices
+      )
+        ? lecon.exercices
+        : [];
+
+    const quiz =
+      Array.isArray(
+        lecon?.quiz
+      )
+        ? lecon.quiz
+        : [];
 
     return (
       <SafeAreaView style={styles.container}>
@@ -1169,41 +1648,104 @@ export default function App() {
         />
 
         <ScrollView contentContainerStyle={styles.content}>
-          <Text
-            style={
-              styles.lessonMainTitle
-            }
-          >
-            {titre}
-          </Text>
+          <View style={styles.lessonHeaderCard}>
+            {lecon?.code ? (
+              <Text style={styles.codeBadge}>
+                {lecon.code}
+              </Text>
+            ) : null}
 
-          <View style={styles.infoCard}>
             <Text
               style={
-                styles.lessonContent
+                styles.lessonMainTitle
               }
             >
-              {typeof contenu ===
-              "string"
-                ? contenu
-                : JSON.stringify(
-                    contenu
-                  )}
+              {titre}
             </Text>
+
+            {objectif ? (
+              <View
+                style={
+                  styles.objectiveBox
+                }
+              >
+                <Text
+                  style={
+                    styles.objectiveTitle
+                  }
+                >
+                  OBJECTIF
+                </Text>
+
+                <Text
+                  style={
+                    styles.objectiveText
+                  }
+                >
+                  {objectif}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
-          {exemples.length > 0 && (
-            <View
-              style={
-                styles.sectionCard
-              }
-            >
+          {explication ? (
+            <View style={styles.sectionCard}>
               <Text
                 style={
                   styles.sectionTitle
                 }
               >
-                Exemples
+                COURS
+              </Text>
+
+              <Text
+                style={
+                  styles.lessonContent
+                }
+              >
+                {typeof explication ===
+                "string"
+                  ? explication
+                  : JSON.stringify(
+                      explication
+                    )}
+              </Text>
+            </View>
+          ) : null}
+
+          {regle ? (
+            <View style={styles.ruleCard}>
+              <Text
+                style={
+                  styles.sectionTitle
+                }
+              >
+                À RETENIR
+              </Text>
+
+              <Text
+                style={
+                  styles.ruleText
+                }
+              >
+                {typeof regle ===
+                "string"
+                  ? regle
+                  : JSON.stringify(
+                      regle
+                    )}
+              </Text>
+            </View>
+          ) : null}
+
+          {exemples.length > 0 && (
+            <View style={styles.sectionCard}>
+              <Text
+                style={
+                  styles.sectionTitle
+                }
+              >
+                EXEMPLES
               </Text>
 
               {exemples.map(
@@ -1215,30 +1757,65 @@ export default function App() {
                     }
                   >
                     •{" "}
-                    {String(
-                      exemple
-                    )}
+                    {typeof exemple ===
+                    "string"
+                      ? exemple
+                      : JSON.stringify(
+                          exemple
+                        )}
                   </Text>
                 )
               )}
             </View>
           )}
 
-          {corriger.length > 0 && (
-            <View
-              style={
-                styles.sectionCard
-              }
-            >
+          {decodables.length > 0 && (
+            <View style={styles.decodableCard}>
               <Text
                 style={
                   styles.sectionTitle
                 }
               >
-                Corrigés
+                DÉCODABLES
               </Text>
 
-              {corriger.map(
+              {decodables.map(
+                (item, index) => (
+                  <View
+                    key={index}
+                    style={
+                      styles.decodableItem
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.decodableText
+                      }
+                    >
+                      {typeof item ===
+                      "string"
+                        ? item
+                        : JSON.stringify(
+                            item
+                          )}
+                    </Text>
+                  </View>
+                )
+              )}
+            </View>
+          )}
+
+          {manipulations.length > 0 && (
+            <View style={styles.sectionCard}>
+              <Text
+                style={
+                  styles.sectionTitle
+                }
+              >
+                MANIPULATIONS
+              </Text>
+
+              {manipulations.map(
                 (item, index) => (
                   <Text
                     key={index}
@@ -1247,20 +1824,642 @@ export default function App() {
                     }
                   >
                     •{" "}
-                    {String(item)}
+                    {typeof item ===
+                    "string"
+                      ? item
+                      : JSON.stringify(
+                          item
+                        )}
                   </Text>
                 )
               )}
             </View>
+          )}
+
+          {retenir ? (
+            <View style={styles.retenirCard}>
+              <Text
+                style={
+                  styles.sectionTitle
+                }
+              >
+                À RETENIR
+              </Text>
+
+              <Text
+                style={
+                  styles.retenirText
+                }
+              >
+                {typeof retenir ===
+                "string"
+                  ? retenir
+                  : JSON.stringify(
+                      retenir
+                    )}
+              </Text>
+            </View>
+          ) : null}
+
+          {corriges.length > 0 && (
+            <View style={styles.sectionCard}>
+              <Text
+                style={
+                  styles.sectionTitle
+                }
+              >
+                CORRECTIONS
+              </Text>
+
+              {corriges.map(
+                (item, index) => (
+                  <Text
+                    key={index}
+                    style={
+                      styles.bulletText
+                    }
+                  >
+                    •{" "}
+                    {typeof item ===
+                    "string"
+                      ? item
+                      : JSON.stringify(
+                          item
+                        )}
+                  </Text>
+                )
+              )}
+            </View>
+          )}
+
+          {estCP1 && (
+            <>
+              <TouchableOpacity
+                style={
+                  styles.activityButton
+                }
+                onPress={() =>
+                  exercices.length > 0
+                    ? setEcran(
+                        "CP1_EXERCICES"
+                      )
+                    : Alert.alert(
+                        "Exercices",
+                        "Aucun exercice n'est disponible pour cette leçon."
+                      )
+                }
+              >
+                <Text
+                  style={
+                    styles.activityIcon
+                  }
+                >
+                  ✏️
+                </Text>
+
+                <View
+                  style={
+                    styles.activityInfo
+                  }
+                >
+                  <Text
+                    style={
+                      styles.activityTitle
+                    }
+                  >
+                    EXERCICES
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.activityText
+                    }
+                  >
+                    {exercices.length} exercice(s)
+                    disponible(s)
+                  </Text>
+                </View>
+
+                <Text
+                  style={styles.arrow}
+                >
+                  ›
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={
+                  styles.activityButton
+                }
+                onPress={() =>
+                  quiz.length > 0
+                    ? reinitialiserQuiz()
+                    : Alert.alert(
+                        "Quiz",
+                        "Aucun quiz n'est disponible pour cette leçon."
+                      )
+                }
+              >
+                <Text
+                  style={
+                    styles.activityIcon
+                  }
+                >
+                  🧠
+                </Text>
+
+                <View
+                  style={
+                    styles.activityInfo
+                  }
+                >
+                  <Text
+                    style={
+                      styles.activityTitle
+                    }
+                  >
+                    QUIZ
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.activityText
+                    }
+                  >
+                    {quiz.length} question(s)
+                    disponible(s)
+                  </Text>
+                </View>
+
+                <Text
+                  style={styles.arrow}
+                >
+                  ›
+                </Text>
+              </TouchableOpacity>
+            </>
           )}
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // =========================================================
-  // CHAPITRES CM2
-  // =========================================================
+  /* =======================================================
+     EXERCICES CP1
+     ======================================================= */
+
+  if (ecran === "CP1_EXERCICES") {
+    const lecon = getLeconCP1(
+      chapitreSelectionne
+    );
+
+    const exercices =
+      Array.isArray(
+        lecon?.exercices
+      )
+        ? lecon.exercices
+        : [];
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+
+        <Header
+          title="Exercices"
+          onBack={() =>
+            setEcran("LECON")
+          }
+        />
+
+        <ScrollView contentContainerStyle={styles.content}>
+          <Text style={styles.pageTitle}>
+            Exercices
+          </Text>
+
+          <Text style={styles.pageSubtitle}>
+            {lecon?.titre || "Leçon CP1"}
+          </Text>
+
+          {exercices.length === 0 ? (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>
+                Aucun exercice disponible.
+              </Text>
+            </View>
+          ) : (
+            exercices.map(
+              (exercice, index) => (
+                <View
+                  key={
+                    exercice?.id ||
+                    index
+                  }
+                  style={
+                    styles.exerciseCard
+                  }
+                >
+                  <Text
+                    style={
+                      styles.exerciseNumber
+                    }
+                  >
+                    Exercice {index + 1}
+                  </Text>
+
+                  {exercice?.difficulte ? (
+                    <Text
+                      style={
+                        styles.difficulty
+                      }
+                    >
+                      Niveau :{" "}
+                      {
+                        exercice.difficulte
+                      }
+                    </Text>
+                  ) : null}
+
+                  <Text
+                    style={
+                      styles.exerciseQuestion
+                    }
+                  >
+                    {exercice?.question ||
+                      exercice?.consigne ||
+                      exercice?.texte ||
+                      "Exercice"}
+                  </Text>
+
+                  {Array.isArray(
+                    exercice?.options
+                  ) &&
+                    exercice.options.map(
+                      (
+                        option,
+                        optionIndex
+                      ) => (
+                        <View
+                          key={
+                            optionIndex
+                          }
+                          style={
+                            styles.exerciseOption
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.optionText
+                            }
+                          >
+                            {String(
+                              option
+                            )}
+                          </Text>
+                        </View>
+                      )
+                    )}
+
+                  {exercice?.reponse !==
+                    undefined && (
+                    <View
+                      style={
+                        styles.answerBox
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.answerTitle
+                        }
+                      >
+                        Correction
+                      </Text>
+
+                      <Text
+                        style={
+                          styles.answerText
+                        }
+                      >
+                        {String(
+                          exercice.reponse
+                        )}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )
+            )
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  /* =======================================================
+     QUIZ
+     ======================================================= */
+
+  if (ecran === "QUIZ") {
+    if (
+      !Array.isArray(banqueQuiz) ||
+      banqueQuiz.length === 0
+    ) {
+      return (
+        <SafeAreaView
+          style={styles.container}
+        >
+          <Header
+            title="Quiz"
+            onBack={
+              estCP1
+                ? () =>
+                    setEcran(
+                      "LECON"
+                    )
+                : retourAccueil
+            }
+          />
+
+          <View
+            style={
+              styles.emptyContainer
+            }
+          >
+            <Text
+              style={
+                styles.emptyIcon
+              }
+            >
+              🧠
+            </Text>
+
+            <Text
+              style={
+                styles.emptyTitle
+              }
+            >
+              Aucun quiz disponible
+            </Text>
+
+            <TouchableOpacity
+              style={
+                styles.primaryButton
+              }
+              onPress={
+                estCP1
+                  ? () =>
+                      setEcran(
+                        "LECON"
+                      )
+                  : retourAccueil
+              }
+            >
+              <Text
+                style={
+                  styles.primaryButtonText
+                }
+              >
+                Retour
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+    if (quizTermine) {
+      return (
+        <SafeAreaView
+          style={styles.container}
+        >
+          <Header
+            title="Résultat"
+            onBack={
+              estCP1
+                ? () =>
+                    setEcran(
+                      "LECON"
+                    )
+                : retourAccueil
+            }
+          />
+
+          <View
+            style={
+              styles.emptyContainer
+            }
+          >
+            <Text
+              style={
+                styles.emptyIcon
+              }
+            >
+              🏆
+            </Text>
+
+            <Text
+              style={
+                styles.emptyTitle
+              }
+            >
+              Quiz terminé !
+            </Text>
+
+            <Text
+              style={styles.scoreText}
+            >
+              Score : {score} /{" "}
+              {banqueQuiz.length}
+            </Text>
+
+            <TouchableOpacity
+              style={
+                styles.primaryButton
+              }
+              onPress={
+                reinitialiserQuiz
+              }
+            >
+              <Text
+                style={
+                  styles.primaryButtonText
+                }
+              >
+                RECOMMENCER
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={
+                styles.secondaryButton
+              }
+              onPress={
+                estCP1
+                  ? () =>
+                      setEcran(
+                        "LECON"
+                      )
+                  : retourAccueil
+              }
+            >
+              <Text
+                style={
+                  styles.secondaryButtonText
+                }
+              >
+                RETOUR
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+    const question =
+      questionQuiz?.question ||
+      questionQuiz?.texte ||
+      questionQuiz?.consigne ||
+      "Question";
+
+    const options =
+      Array.isArray(
+        questionQuiz?.options
+      )
+        ? questionQuiz.options
+        : Array.isArray(
+            questionQuiz?.choix
+          )
+        ? questionQuiz.choix
+        : [];
+
+    return (
+      <SafeAreaView
+        style={styles.container}
+      >
+        <Header
+          title={`Quiz ${
+            quizIndex + 1
+          }/${banqueQuiz.length}`}
+          onBack={
+            estCP1
+              ? () =>
+                  setEcran(
+                    "LECON"
+                  )
+              : retourAccueil
+          }
+        />
+
+        <ScrollView contentContainerStyle={styles.content}>
+          <View
+            style={
+              styles.quizProgress
+            }
+          >
+            <Text
+              style={
+                styles.quizProgressText
+              }
+            >
+              Question{" "}
+              {quizIndex + 1} sur{" "}
+              {banqueQuiz.length}
+            </Text>
+          </View>
+
+          <View
+            style={
+              styles.quizCard
+            }
+          >
+            <Text
+              style={
+                styles.questionText
+              }
+            >
+              {question}
+            </Text>
+
+            {options.map(
+              (option, index) => {
+                let bonne = false;
+
+                if (
+                  option ===
+                  questionQuiz?.reponse
+                ) {
+                  bonne = true;
+                }
+
+                if (
+                  option ===
+                  questionQuiz?.bonneReponse
+                ) {
+                  bonne = true;
+                }
+
+                if (
+                  typeof questionQuiz?.bonneReponse ===
+                    "number" &&
+                  index ===
+                    questionQuiz.bonneReponse
+                ) {
+                  bonne = true;
+                }
+
+                if (
+                  typeof questionQuiz?.reponse ===
+                    "number" &&
+                  index ===
+                    questionQuiz.reponse
+                ) {
+                  bonne = true;
+                }
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={
+                      styles.optionButton
+                    }
+                    onPress={() =>
+                      repondreQuiz(
+                        bonne
+                      )
+                    }
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={
+                        styles.optionLetter
+                      }
+                    >
+                      {String.fromCharCode(
+                        65 + index
+                      )}
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.optionText
+                      }
+                    >
+                      {String(
+                        option
+                      )}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  /* =======================================================
+     CHAPITRES CM2
+     ======================================================= */
 
   if (ecran === "CHAPITRES_CM2") {
     const chapitres = Array.isArray(
@@ -1340,226 +2539,9 @@ export default function App() {
     );
   }
 
-  // =========================================================
-  // QUIZ
-  // =========================================================
-
-  if (ecran === "QUIZ") {
-    if (
-      !Array.isArray(
-        banqueQuiz
-      ) ||
-      banqueQuiz.length === 0
-    ) {
-      return (
-        <SafeAreaView
-          style={styles.container}
-        >
-          <Header
-            title="Quiz"
-            onBack={retourAccueil}
-          />
-
-          <View
-            style={
-              styles.emptyContainer
-            }
-          >
-            <Text
-              style={
-                styles.emptyIcon
-              }
-            >
-              🧠
-            </Text>
-
-            <Text
-              style={
-                styles.emptyTitle
-              }
-            >
-              Aucun quiz disponible
-            </Text>
-
-            <TouchableOpacity
-              style={
-                styles.primaryButton
-              }
-              onPress={
-                retourAccueil
-              }
-            >
-              <Text
-                style={
-                  styles.primaryButtonText
-                }
-              >
-                Retour
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      );
-    }
-
-    if (quizTermine) {
-      return (
-        <SafeAreaView
-          style={styles.container}
-        >
-          <Header
-            title="Résultat"
-            onBack={retourAccueil}
-          />
-
-          <View
-            style={
-              styles.emptyContainer
-            }
-          >
-            <Text
-              style={
-                styles.emptyIcon
-              }
-            >
-              🏆
-            </Text>
-
-            <Text
-              style={
-                styles.emptyTitle
-              }
-            >
-              Quiz terminé !
-            </Text>
-
-            <Text
-              style={styles.scoreText}
-            >
-              Score : {score} /{" "}
-              {banqueQuiz.length}
-            </Text>
-
-            <TouchableOpacity
-              style={
-                styles.primaryButton
-              }
-              onPress={
-                reinitialiserQuiz
-              }
-            >
-              <Text
-                style={
-                  styles.primaryButtonText
-                }
-              >
-                Recommencer
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={
-                styles.secondaryButton
-              }
-              onPress={
-                retourAccueil
-              }
-            >
-              <Text
-                style={
-                  styles.secondaryButtonText
-                }
-              >
-                Accueil
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      );
-    }
-
-    const question =
-      questionQuiz?.question ||
-      questionQuiz?.texte ||
-      "Question";
-
-    const options = Array.isArray(
-      questionQuiz?.options
-    )
-      ? questionQuiz.options
-      : Array.isArray(
-          questionQuiz?.choix
-        )
-      ? questionQuiz.choix
-      : [];
-
-    return (
-      <SafeAreaView
-        style={styles.container}
-      >
-        <Header
-          title={`Quiz ${
-            quizIndex + 1
-          }/${banqueQuiz.length}`}
-          onBack={retourAccueil}
-        />
-
-        <ScrollView contentContainerStyle={styles.content}>
-          <View
-            style={
-              styles.quizCard
-            }
-          >
-            <Text
-              style={
-                styles.questionText
-              }
-            >
-              {question}
-            </Text>
-
-            {options.map(
-              (option, index) => {
-                const bonne =
-                  option ===
-                    questionQuiz?.reponse ||
-                  option ===
-                    questionQuiz?.bonneReponse ||
-                  index ===
-                    questionQuiz?.bonneReponse;
-
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={
-                      styles.optionButton
-                    }
-                    onPress={() =>
-                      repondreQuiz(
-                        bonne
-                      )
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.optionText
-                      }
-                    >
-                      {String(option)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              }
-            )}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // =========================================================
-  // ÉCRAN PAR DÉFAUT
-  // =========================================================
+  /* =======================================================
+     ÉCRAN PAR DÉFAUT
+     ======================================================= */
 
   return (
     <SafeAreaView
@@ -1604,9 +2586,9 @@ export default function App() {
   );
 }
 
-// =========================================================
-// STYLES
-// =========================================================
+/* =========================================================
+   STYLES
+   ========================================================= */
 
 const styles = StyleSheet.create({
   container: {
@@ -1616,7 +2598,7 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 50,
   },
 
   authContainer: {
@@ -1822,6 +2804,40 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
+  programCard: {
+    backgroundColor: "#173B57",
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 20,
+  },
+
+  programBadge: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "900",
+    marginBottom: 7,
+    letterSpacing: 1,
+  },
+
+  programTitle: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "900",
+    marginBottom: 8,
+  },
+
+  programText: {
+    color: "#DCEAF4",
+    fontSize: 15,
+    lineHeight: 23,
+  },
+
+  progressionMini: {
+    color: "#55738B",
+    fontSize: 12,
+    marginTop: 5,
+  },
+
   subjectCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -1851,6 +2867,7 @@ const styles = StyleSheet.create({
   subjectDescription: {
     color: "#687887",
     marginTop: 4,
+    lineHeight: 20,
   },
 
   lessonCard: {
@@ -1892,6 +2909,61 @@ const styles = StyleSheet.create({
   lessonDescription: {
     color: "#687887",
     marginTop: 4,
+    lineHeight: 20,
+  },
+
+  codeText: {
+    color: "#8A9AAA",
+    fontSize: 11,
+    marginTop: 5,
+    fontWeight: "700",
+  },
+
+  codeBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#E8EEF3",
+    color: "#173B57",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 10,
+  },
+
+  lessonHeaderCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#E1E8EF",
+  },
+
+  lessonMainTitle: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#173B57",
+    marginBottom: 15,
+  },
+
+  objectiveBox: {
+    backgroundColor: "#F4F7FB",
+    borderRadius: 12,
+    padding: 15,
+  },
+
+  objectiveTitle: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#173B57",
+    marginBottom: 6,
+  },
+
+  objectiveText: {
+    fontSize: 15,
+    color: "#455765",
+    lineHeight: 23,
   },
 
   infoCard: {
@@ -1908,33 +2980,49 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 
-  lessonMainTitle: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: "#173B57",
-    marginBottom: 18,
-  },
-
-  lessonContent: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: "#334955",
-  },
-
   sectionCard: {
     backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 16,
-    marginTop: 15,
+    marginBottom: 15,
     borderWidth: 1,
     borderColor: "#E1E8EF",
   },
 
   sectionTitle: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: "900",
     color: "#173B57",
     marginBottom: 12,
+  },
+
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
+  sectionTitleInline: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#173B57",
+  },
+
+  countBadge: {
+    backgroundColor: "#173B57",
+    color: "#FFFFFF",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    fontWeight: "900",
+  },
+
+  indexText: {
+    fontSize: 15,
+    lineHeight: 23,
+    color: "#455765",
+    marginBottom: 7,
   },
 
   bulletText: {
@@ -1942,6 +3030,222 @@ const styles = StyleSheet.create({
     lineHeight: 25,
     color: "#455765",
     marginBottom: 7,
+  },
+
+  lessonContent: {
+    fontSize: 16,
+    lineHeight: 27,
+    color: "#334955",
+  },
+
+  ruleCard: {
+    backgroundColor: "#EAF1F6",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 15,
+  },
+
+  ruleText: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: "#173B57",
+    fontWeight: "600",
+  },
+
+  retenirCard: {
+    backgroundColor: "#F0F5F8",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 15,
+  },
+
+  retenirText: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: "#173B57",
+    fontWeight: "700",
+  },
+
+  decodableCard: {
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#E1E8EF",
+  },
+
+  decodableItem: {
+    backgroundColor: "#F4F7FB",
+    borderRadius: 10,
+    padding: 13,
+    marginBottom: 8,
+  },
+
+  decodableText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#173B57",
+  },
+
+  evaluationButton: {
+    backgroundColor: "#173B57",
+    borderRadius: 16,
+    padding: 18,
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  evaluationIcon: {
+    fontSize: 32,
+    marginRight: 14,
+  },
+
+  evaluationInfo: {
+    flex: 1,
+  },
+
+  evaluationTitle: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "900",
+  },
+
+  evaluationText: {
+    color: "#DCEAF4",
+    marginTop: 4,
+  },
+
+  evaluationMainCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 25,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E1E8EF",
+  },
+
+  evaluationBigIcon: {
+    fontSize: 55,
+    marginBottom: 10,
+  },
+
+  evaluationMainTitle: {
+    fontSize: 23,
+    fontWeight: "900",
+    color: "#173B57",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+
+  evaluationMainText: {
+    color: "#455765",
+    fontSize: 16,
+    lineHeight: 26,
+    textAlign: "center",
+  },
+
+  activityButton: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E1E8EF",
+  },
+
+  activityIcon: {
+    fontSize: 31,
+    marginRight: 14,
+  },
+
+  activityInfo: {
+    flex: 1,
+  },
+
+  activityTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#173B57",
+  },
+
+  activityText: {
+    color: "#687887",
+    marginTop: 4,
+  },
+
+  exerciseCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#E1E8EF",
+  },
+
+  exerciseNumber: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#173B57",
+    marginBottom: 5,
+  },
+
+  difficulty: {
+    fontSize: 12,
+    color: "#687887",
+    marginBottom: 12,
+    fontWeight: "700",
+  },
+
+  exerciseQuestion: {
+    fontSize: 17,
+    lineHeight: 25,
+    color: "#334955",
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+
+  exerciseOption: {
+    backgroundColor: "#F4F7FB",
+    padding: 13,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+
+  answerBox: {
+    backgroundColor: "#EAF1F6",
+    padding: 13,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+
+  answerTitle: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: "#173B57",
+    marginBottom: 5,
+  },
+
+  answerText: {
+    color: "#334955",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+
+  quizProgress: {
+    backgroundColor: "#EAF1F6",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+
+  quizProgressText: {
+    color: "#173B57",
+    fontWeight: "800",
   },
 
   quizCard: {
@@ -1967,9 +3271,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  optionLetter: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#173B57",
+    color: "#FFFFFF",
+    textAlign: "center",
+    paddingTop: 5,
+    fontWeight: "900",
+    marginRight: 10,
   },
 
   optionText: {
+    flex: 1,
     fontSize: 16,
     color: "#173B57",
     fontWeight: "600",
@@ -2002,3 +3321,4 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 });
+```
