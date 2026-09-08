@@ -1,4 +1,3 @@
-```javascript
 import React, { useState } from "react";
 import {
   SafeAreaView,
@@ -36,11 +35,12 @@ import { obtenirContenu } from "./src/data/lecons";
    DONNÉES CP1 PNAPAS
    ========================================================= */
 
-import {
-  RUBRIQUES_FRANCAIS_CP1,
-  RUBRIQUES_MATHS_CP1,
-  getCP1Lesson,
-} from "./src/data/CP1";
+/*
+ * Import global volontairement utilisé ici.
+ * Cela évite qu'une exportation auxiliaire manquante dans
+ * src/data/CP1/index.js fasse planter Babel au démarrage.
+ */
+import * as CP1_DATA from "./src/data/CP1";
 
 /* =========================================================
    APPLICATION
@@ -92,6 +92,25 @@ export default function App() {
   const [quizTermine, setQuizTermine] = useState(false);
 
   /* =======================================================
+     DONNÉES CP1 SÉCURISÉES
+     ======================================================= */
+
+  const rubriquesFrancaisCP1 =
+    Array.isArray(CP1_DATA.RUBRIQUES_FRANCAIS_CP1)
+      ? CP1_DATA.RUBRIQUES_FRANCAIS_CP1
+      : [];
+
+  const rubriquesMathsCP1 =
+    Array.isArray(CP1_DATA.RUBRIQUES_MATHS_CP1)
+      ? CP1_DATA.RUBRIQUES_MATHS_CP1
+      : [];
+
+  const donneesCP1 =
+    CP1_DATA.CP1 && typeof CP1_DATA.CP1 === "object"
+      ? CP1_DATA.CP1
+      : {};
+
+  /* =======================================================
      NORMALISATION DU NIVEAU
      ======================================================= */
 
@@ -112,84 +131,247 @@ export default function App() {
      MATIÈRES
      ======================================================= */
 
-  const matieres = estCP ? MATIERES_CP : MATIERES_CE_CM;
+  const matieres = estCP
+    ? Array.isArray(MATIERES_CP)
+      ? MATIERES_CP
+      : []
+    : Array.isArray(MATIERES_CE_CM)
+    ? MATIERES_CE_CM
+    : [];
 
   /* =======================================================
      RUBRIQUES FRANÇAIS
      ======================================================= */
 
-  const rubriquesFrançais = estCP1
-    ? RUBRIQUES_FRANCAIS_CP1
+  const rubriquesFrancais = estCP1
+    ? rubriquesFrancaisCP1
     : estCP
-    ? RUBRIQUES_CP
-    : RUBRIQUES_CE_CM;
+    ? Array.isArray(RUBRIQUES_CP)
+      ? RUBRIQUES_CP
+      : []
+    : Array.isArray(RUBRIQUES_CE_CM)
+    ? RUBRIQUES_CE_CM
+    : [];
 
   /* =======================================================
      RUBRIQUES MATHS CP1
      ======================================================= */
 
-  const rubriquesMathsCP1 = RUBRIQUES_MATHS_CP1 || [];
+  const rubriquesMaths = rubriquesMathsCP1;
 
   /* =======================================================
      UTILITAIRES
      ======================================================= */
 
-  const estMatiereFrançais = (matiere) =>
-    matiere?.id === "francais" ||
-    matiere?.id === "français";
-
-  const estMatiereMaths = (matiere) =>
-    matiere?.id === "maths" ||
-    matiere?.id === "mathematiques" ||
-    matiere?.id === "mathématiques";
-
-  const getRubriqueCP1 = (rubrique) => {
-    if (!rubrique?.id) return null;
-
-    const toutesRubriques = [
-      ...RUBRIQUES_FRANCAIS_CP1,
-      ...RUBRIQUES_MATHS_CP1,
-    ];
+  const estMatiereFrancais = (matiere) => {
+    const id = String(matiere?.id || "").toLowerCase();
 
     return (
-      toutesRubriques.find(
-        (item) => item?.id === rubrique.id
-      ) || rubrique
+      id === "francais" ||
+      id === "français"
     );
   };
 
+  const estMatiereMaths = (matiere) => {
+    const id = String(matiere?.id || "").toLowerCase();
+
+    return (
+      id === "maths" ||
+      id === "mathematiques" ||
+      id === "mathématiques"
+    );
+  };
+
+  /* =======================================================
+     RECHERCHE D'UNE RUBRIQUE CP1
+     ======================================================= */
+
+  const getRubriqueCP1 = (rubrique) => {
+    if (!rubrique) {
+      return null;
+    }
+
+    const rubriqueId = rubrique?.id;
+
+    if (!rubriqueId) {
+      return rubrique;
+    }
+
+    const toutesRubriques = [
+      ...rubriquesFrancaisCP1,
+      ...rubriquesMathsCP1,
+    ];
+
+    const trouvee = toutesRubriques.find(
+      (item) => item?.id === rubriqueId
+    );
+
+    return trouvee || rubrique;
+  };
+
+  /* =======================================================
+     RECHERCHE RÉCURSIVE D'UNE LEÇON CP1
+     ======================================================= */
+
+  const chercherLeconDansDonnees = (donnees, identifiant) => {
+    if (!donnees || !identifiant) {
+      return null;
+    }
+
+    if (Array.isArray(donnees)) {
+      for (const item of donnees) {
+        if (!item) {
+          continue;
+        }
+
+        if (
+          item?.id === identifiant ||
+          item?.code === identifiant
+        ) {
+          return item;
+        }
+
+        const resultat = chercherLeconDansDonnees(
+          item,
+          identifiant
+        );
+
+        if (resultat) {
+          return resultat;
+        }
+      }
+
+      return null;
+    }
+
+    if (typeof donnees === "object") {
+      for (const cle of Object.keys(donnees)) {
+        const valeur = donnees[cle];
+
+        if (
+          valeur &&
+          typeof valeur === "object"
+        ) {
+          const resultat =
+            chercherLeconDansDonnees(
+              valeur,
+              identifiant
+            );
+
+          if (resultat) {
+            return resultat;
+          }
+        }
+      }
+    }
+
+    return null;
+  };
+
+  /* =======================================================
+     RECHERCHE D'UNE LEÇON CP1
+     ======================================================= */
+
+  const getLeconCP1 = (lecon) => {
+    if (!lecon) {
+      return null;
+    }
+
+    const identifiant =
+      lecon?.code || lecon?.id;
+
+    if (!identifiant) {
+      return lecon;
+    }
+
+    /* Utilisation de la fonction existante si elle existe */
+    if (
+      typeof CP1_DATA.getCP1Lesson ===
+      "function"
+    ) {
+      try {
+        const resultat =
+          CP1_DATA.getCP1Lesson(
+            identifiant
+          );
+
+        if (resultat) {
+          return resultat;
+        }
+      } catch (error) {
+        /* Recherche locale ci-dessous */
+      }
+    }
+
+    /* Recherche dans CP1 */
+    const resultatCP1 =
+      chercherLeconDansDonnees(
+        donneesCP1,
+        identifiant
+      );
+
+    if (resultatCP1) {
+      return resultatCP1;
+    }
+
+    /* Recherche dans les rubriques */
+    const resultatRubriques =
+      chercherLeconDansDonnees(
+        [
+          ...rubriquesFrancaisCP1,
+          ...rubriquesMathsCP1,
+        ],
+        identifiant
+      );
+
+    return resultatRubriques || lecon;
+  };
+
+  /* =======================================================
+     LEÇONS D'UNE RUBRIQUE
+     ======================================================= */
+
   const getLeconsRubrique = (rubrique) => {
-    const rubriqueComplete = getRubriqueCP1(rubrique);
+    const rubriqueComplete =
+      getRubriqueCP1(rubrique);
 
-    if (!rubriqueComplete) return [];
+    if (!rubriqueComplete) {
+      return [];
+    }
 
-    if (Array.isArray(rubriqueComplete.lecons)) {
+    if (
+      Array.isArray(
+        rubriqueComplete.lecons
+      )
+    ) {
       return rubriqueComplete.lecons;
     }
 
-    if (Array.isArray(rubriqueComplete.chapitres)) {
+    if (
+      Array.isArray(
+        rubriqueComplete.chapitres
+      )
+    ) {
       return rubriqueComplete.chapitres;
     }
 
-    if (Array.isArray(rubriqueComplete.index)) {
+    if (
+      Array.isArray(
+        rubriqueComplete.index
+      )
+    ) {
       return rubriqueComplete.index;
     }
 
+    if (
+      Array.isArray(
+        rubriqueComplete.lessons
+      )
+    ) {
+      return rubriqueComplete.lessons;
+    }
+
     return [];
-  };
-
-  const getLeconCP1 = (lecon) => {
-    if (!lecon) return null;
-
-    if (lecon.code) {
-      return getCP1Lesson(lecon.code) || lecon;
-    }
-
-    if (lecon.id) {
-      return getCP1Lesson(lecon.id) || lecon;
-    }
-
-    return lecon;
   };
 
   /* =======================================================
@@ -199,11 +381,19 @@ export default function App() {
   const inscrireEleve = () => {
     const nomPropre = nom.trim();
     const prenomsPropres = prenoms.trim();
-    const emailPropre = email.trim().toLowerCase();
-    const confirmationEmailPropre =
-      confirmationEmail.trim().toLowerCase();
+    const emailPropre =
+      email.trim().toLowerCase();
 
-    if (!nomPropre || !prenomsPropres || !niveau) {
+    const confirmationEmailPropre =
+      confirmationEmail
+        .trim()
+        .toLowerCase();
+
+    if (
+      !nomPropre ||
+      !prenomsPropres ||
+      !niveau
+    ) {
       Alert.alert(
         "Champs incomplets",
         "Veuillez renseigner le nom, les prénoms et le niveau."
@@ -211,7 +401,10 @@ export default function App() {
       return;
     }
 
-    if (!emailPropre || !confirmationEmailPropre) {
+    if (
+      !emailPropre ||
+      !confirmationEmailPropre
+    ) {
       Alert.alert(
         "Email manquant",
         "Veuillez renseigner et confirmer votre adresse email."
@@ -219,7 +412,10 @@ export default function App() {
       return;
     }
 
-    if (!emailPropre.includes("@")) {
+    if (
+      !emailPropre.includes("@") ||
+      !emailPropre.includes(".")
+    ) {
       Alert.alert(
         "Email incorrect",
         "Veuillez saisir une adresse email valide."
@@ -227,7 +423,10 @@ export default function App() {
       return;
     }
 
-    if (emailPropre !== confirmationEmailPropre) {
+    if (
+      emailPropre !==
+      confirmationEmailPropre
+    ) {
       Alert.alert(
         "Erreur",
         "Les deux adresses email ne correspondent pas."
@@ -251,7 +450,10 @@ export default function App() {
       return;
     }
 
-    if (motDePasse !== confirmationMotDePasse) {
+    if (
+      motDePasse !==
+      confirmationMotDePasse
+    ) {
       Alert.alert(
         "Erreur",
         "Les deux mots de passe ne correspondent pas."
@@ -297,9 +499,15 @@ export default function App() {
      ======================================================= */
 
   const connecter = () => {
-    const emailSaisi = emailConnexion.trim().toLowerCase();
+    const emailSaisi =
+      emailConnexion
+        .trim()
+        .toLowerCase();
 
-    if (!emailSaisi || !motDePasseConnexion) {
+    if (
+      !emailSaisi ||
+      !motDePasseConnexion
+    ) {
       Alert.alert(
         "Connexion",
         "Veuillez renseigner votre email et votre mot de passe."
@@ -315,7 +523,10 @@ export default function App() {
       return;
     }
 
-    if (emailSaisi !== eleve.email) {
+    if (
+      emailSaisi !==
+      eleve.email
+    ) {
       Alert.alert(
         "Erreur",
         "Cette adresse email ne correspond pas au compte créé."
@@ -323,7 +534,10 @@ export default function App() {
       return;
     }
 
-    if (motDePasseConnexion !== eleve.motDePasse) {
+    if (
+      motDePasseConnexion !==
+      eleve.motDePasse
+    ) {
       Alert.alert(
         "Erreur",
         "Mot de passe incorrect."
@@ -331,7 +545,9 @@ export default function App() {
       return;
     }
 
-    setNiveauSelectionne(eleve.niveau);
+    setNiveauSelectionne(
+      eleve.niveau
+    );
 
     setMatiereSelectionnee(null);
     setRubriqueSelectionnee(null);
@@ -341,7 +557,7 @@ export default function App() {
   };
 
   /* =======================================================
-     RETOUR
+     NAVIGATION
      ======================================================= */
 
   const retourAccueil = () => {
@@ -362,7 +578,11 @@ export default function App() {
     setRubriqueSelectionnee(null);
     setChapitreSelectionne(null);
 
-    if (estMatiereMaths(matiereSelectionnee)) {
+    if (
+      estMatiereMaths(
+        matiereSelectionnee
+      )
+    ) {
       setEcran("MATHEMATIQUES");
     } else {
       setEcran("FRANCAIS");
@@ -378,12 +598,16 @@ export default function App() {
     setRubriqueSelectionnee(null);
     setChapitreSelectionne(null);
 
-    if (estMatiereFrançais(matiere)) {
+    if (
+      estMatiereFrancais(matiere)
+    ) {
       setEcran("FRANCAIS");
       return;
     }
 
-    if (estMatiereMaths(matiere)) {
+    if (
+      estMatiereMaths(matiere)
+    ) {
       setEcran("MATHEMATIQUES");
       return;
     }
@@ -395,12 +619,18 @@ export default function App() {
      OUVRIR UNE RUBRIQUE
      ======================================================= */
 
-  const ouvrirRubrique = (rubrique) => {
-    const rubriqueComplete = estCP1
-      ? getRubriqueCP1(rubrique)
-      : rubrique;
+  const ouvrirRubrique = (
+    rubrique
+  ) => {
+    const rubriqueComplete =
+      estCP1
+        ? getRubriqueCP1(rubrique)
+        : rubrique;
 
-    setRubriqueSelectionnee(rubriqueComplete);
+    setRubriqueSelectionnee(
+      rubriqueComplete
+    );
+
     setChapitreSelectionne(null);
     setEcran("RUBRIQUE");
   };
@@ -410,11 +640,15 @@ export default function App() {
      ======================================================= */
 
   const ouvrirLecon = (lecon) => {
-    const leconComplete = estCP1
-      ? getLeconCP1(lecon)
-      : lecon;
+    const leconComplete =
+      estCP1
+        ? getLeconCP1(lecon)
+        : lecon;
 
-    setChapitreSelectionne(leconComplete);
+    setChapitreSelectionne(
+      leconComplete
+    );
+
     setEcran("LECON");
   };
 
@@ -423,8 +657,12 @@ export default function App() {
      ======================================================= */
 
   const programmeGrammaire =
-    PROGRAMMES_GRAMMAIRE?.[niveauNormalise] ||
-    PROGRAMMES_GRAMMAIRE?.[eleve?.niveau] ||
+    PROGRAMMES_GRAMMAIRE?.[
+      niveauNormalise
+    ] ||
+    PROGRAMMES_GRAMMAIRE?.[
+      eleve?.niveau
+    ] ||
     [];
 
   /* =======================================================
@@ -434,24 +672,31 @@ export default function App() {
   const banqueQuizGenerale =
     QUIZ?.[niveauNormalise] ||
     QUIZ?.[eleve?.niveau] ||
-    (Array.isArray(QUIZ) ? QUIZ : []);
+    (Array.isArray(QUIZ)
+      ? QUIZ
+      : []);
 
-  const leconActuelleCP1 = estCP1
-    ? getLeconCP1(chapitreSelectionne)
-    : null;
+  const leconActuelleCP1 =
+    estCP1
+      ? getLeconCP1(
+          chapitreSelectionne
+        )
+      : null;
 
   const banqueQuizCP1 =
     leconActuelleCP1?.quiz ||
     leconActuelleCP1?.questionsQuiz ||
     [];
 
-  const banqueQuiz = estCP1
-    ? banqueQuizCP1
-    : banqueQuizGenerale;
+  const banqueQuiz =
+    estCP1
+      ? banqueQuizCP1
+      : banqueQuizGenerale;
 
-  const questionQuiz = Array.isArray(banqueQuiz)
-    ? banqueQuiz[quizIndex]
-    : null;
+  const questionQuiz =
+    Array.isArray(banqueQuiz)
+      ? banqueQuiz[quizIndex]
+      : null;
 
   const reinitialiserQuiz = () => {
     setQuizIndex(0);
@@ -460,19 +705,28 @@ export default function App() {
     setEcran("QUIZ");
   };
 
-  const repondreQuiz = (bonneReponse) => {
+  const repondreQuiz = (
+    bonneReponse
+  ) => {
     if (bonneReponse) {
-      setScore((ancienScore) => ancienScore + 1);
+      setScore(
+        (ancienScore) =>
+          ancienScore + 1
+      );
     }
 
     if (
       !Array.isArray(banqueQuiz) ||
       banqueQuiz.length === 0 ||
-      quizIndex >= banqueQuiz.length - 1
+      quizIndex >=
+        banqueQuiz.length - 1
     ) {
       setQuizTermine(true);
     } else {
-      setQuizIndex((ancienIndex) => ancienIndex + 1);
+      setQuizIndex(
+        (ancienIndex) =>
+          ancienIndex + 1
+      );
     }
   };
 
@@ -486,12 +740,19 @@ export default function App() {
     "LOGIN",
   ];
 
-  if (!ecransPublics.includes(ecran) && !eleve) {
+  if (
+    !ecransPublics.includes(ecran) &&
+    !eleve
+  ) {
     return (
       <WelcomeScreen
         go={setEcran}
-        onLogin={() => setEcran("LOGIN")}
-        onRegister={() => setEcran("INSCRIPTION")}
+        onLogin={() =>
+          setEcran("LOGIN")
+        }
+        onRegister={() =>
+          setEcran("INSCRIPTION")
+        }
       />
     );
   }
@@ -504,8 +765,12 @@ export default function App() {
     return (
       <WelcomeScreen
         go={setEcran}
-        onLogin={() => setEcran("LOGIN")}
-        onRegister={() => setEcran("INSCRIPTION")}
+        onLogin={() =>
+          setEcran("LOGIN")
+        }
+        onRegister={() =>
+          setEcran("INSCRIPTION")
+        }
       />
     );
   }
@@ -516,18 +781,26 @@ export default function App() {
 
   if (ecran === "INSCRIPTION") {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <ScrollView
-          contentContainerStyle={styles.authContainer}
+          contentContainerStyle={
+            styles.authContainer
+          }
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.logo}>
             Z.ÉDUCATION
           </Text>
 
-          <Text style={styles.authTitle}>
+          <Text
+            style={styles.authTitle}
+          >
             Créer un compte
           </Text>
 
@@ -554,9 +827,13 @@ export default function App() {
           </Text>
 
           <TouchableOpacity
-            style={styles.selectInput}
+            style={
+              styles.selectInput
+            }
             onPress={() =>
-              setNiveauOuvert((ancien) => !ancien)
+              setNiveauOuvert(
+                (ancien) => !ancien
+              )
             }
           >
             <Text
@@ -566,46 +843,80 @@ export default function App() {
                   : styles.placeholderText
               }
             >
-              {niveau || "Sélectionner le niveau"}
+              {niveau ||
+                "Sélectionner le niveau"}
             </Text>
 
-            <Text style={styles.arrowText}>
-              {niveauOuvert ? "▲" : "▼"}
+            <Text
+              style={styles.arrowText}
+            >
+              {niveauOuvert
+                ? "▲"
+                : "▼"}
             </Text>
           </TouchableOpacity>
 
           {niveauOuvert && (
-            <View style={styles.dropdown}>
-              {(NIVEAUX || []).map((item, index) => {
-                const valeur =
-                  typeof item === "string"
-                    ? item
-                    : item?.id || item?.nom;
+            <View
+              style={styles.dropdown}
+            >
+              {(Array.isArray(NIVEAUX)
+                ? NIVEAUX
+                : []
+              ).map(
+                (item, index) => {
+                  const valeur =
+                    typeof item ===
+                    "string"
+                      ? item
+                      : item?.id ||
+                        item?.nom;
 
-                const libelle =
-                  typeof item === "string"
-                    ? item
-                    : item?.nom || item?.id;
+                  const libelle =
+                    typeof item ===
+                    "string"
+                      ? item
+                      : item?.nom ||
+                        item?.id;
 
-                if (!valeur) {
-                  return null;
+                  if (!valeur) {
+                    return null;
+                  }
+
+                  return (
+                    <TouchableOpacity
+                      key={
+                        String(valeur) +
+                        "-" +
+                        String(index)
+                      }
+                      style={
+                        styles.dropdownItem
+                      }
+                      onPress={() => {
+                        setNiveau(
+                          String(
+                            valeur
+                          )
+                        );
+                        setNiveauOuvert(
+                          false
+                        );
+                      }}
+                    >
+                      <Text
+                        style={
+                          styles.dropdownText
+                        }
+                      >
+                        {String(
+                          libelle
+                        )}
+                      </Text>
+                    </TouchableOpacity>
+                  );
                 }
-
-                return (
-                  <TouchableOpacity
-                    key={`${valeur}-${index}`}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setNiveau(valeur);
-                      setNiveauOuvert(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownText}>
-                      {libelle}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              )}
             </View>
           )}
 
@@ -624,8 +935,12 @@ export default function App() {
             style={styles.input}
             placeholder="Confirmer l'adresse email"
             placeholderTextColor="#999"
-            value={confirmationEmail}
-            onChangeText={setConfirmationEmail}
+            value={
+              confirmationEmail
+            }
+            onChangeText={
+              setConfirmationEmail
+            }
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -636,7 +951,9 @@ export default function App() {
             placeholder="Mot de passe"
             placeholderTextColor="#999"
             value={motDePasse}
-            onChangeText={setMotDePasse}
+            onChangeText={
+              setMotDePasse
+            }
             secureTextEntry
           />
 
@@ -644,35 +961,59 @@ export default function App() {
             style={styles.input}
             placeholder="Confirmer le mot de passe"
             placeholderTextColor="#999"
-            value={confirmationMotDePasse}
-            onChangeText={setConfirmationMotDePasse}
+            value={
+              confirmationMotDePasse
+            }
+            onChangeText={
+              setConfirmationMotDePasse
+            }
             secureTextEntry
           />
 
           <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={inscrireEleve}
+            style={
+              styles.primaryButton
+            }
+            onPress={
+              inscrireEleve
+            }
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryButtonText}>
+            <Text
+              style={
+                styles.primaryButtonText
+              }
+            >
               CRÉER MON COMPTE
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setEcran("LOGIN")}
-            style={styles.linkButton}
+            onPress={() =>
+              setEcran("LOGIN")
+            }
+            style={
+              styles.linkButton
+            }
           >
-            <Text style={styles.linkText}>
+            <Text
+              style={styles.linkText}
+            >
               J'ai déjà un compte
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setEcran("WELCOME")}
-            style={styles.linkButton}
+            onPress={() =>
+              setEcran("WELCOME")
+            }
+            style={
+              styles.linkButton
+            }
           >
-            <Text style={styles.linkText}>
+            <Text
+              style={styles.linkText}
+            >
               Retour
             </Text>
           </TouchableOpacity>
@@ -687,15 +1028,23 @@ export default function App() {
 
   if (ecran === "LOGIN") {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
-        <View style={styles.authContainer}>
+        <View
+          style={styles.authContainer}
+        >
           <Text style={styles.logo}>
             Z.ÉDUCATION
           </Text>
 
-          <Text style={styles.authTitle}>
+          <Text
+            style={styles.authTitle}
+          >
             Connexion
           </Text>
 
@@ -706,8 +1055,12 @@ export default function App() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            value={emailConnexion}
-            onChangeText={setEmailConnexion}
+            value={
+              emailConnexion
+            }
+            onChangeText={
+              setEmailConnexion
+            }
           />
 
           <TextInput
@@ -715,34 +1068,56 @@ export default function App() {
             placeholder="Mot de passe"
             placeholderTextColor="#999"
             secureTextEntry
-            value={motDePasseConnexion}
-            onChangeText={setMotDePasseConnexion}
+            value={
+              motDePasseConnexion
+            }
+            onChangeText={
+              setMotDePasseConnexion
+            }
           />
 
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={
+              styles.primaryButton
+            }
             onPress={connecter}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryButtonText}>
+            <Text
+              style={
+                styles.primaryButtonText
+              }
+            >
               SE CONNECTER
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setEcran("INSCRIPTION")}
-            style={styles.linkButton}
+            onPress={() =>
+              setEcran("INSCRIPTION")
+            }
+            style={
+              styles.linkButton
+            }
           >
-            <Text style={styles.linkText}>
+            <Text
+              style={styles.linkText}
+            >
               Créer un compte
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setEcran("WELCOME")}
-            style={styles.linkButton}
+            onPress={() =>
+              setEcran("WELCOME")
+            }
+            style={
+              styles.linkButton
+            }
           >
-            <Text style={styles.linkText}>
+            <Text
+              style={styles.linkText}
+            >
               Retour
             </Text>
           </TouchableOpacity>
@@ -757,72 +1132,123 @@ export default function App() {
 
   if (ecran === "ACCUEIL") {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title="Z.ÉDUCATION"
           onBack={null}
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.welcomeCard}>
-            <Text style={styles.welcomeTitle}>
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <View
+            style={styles.welcomeCard}
+          >
+            <Text
+              style={
+                styles.welcomeTitle
+              }
+            >
               Bonjour{" "}
-              {eleve?.prenoms
-                ? eleve.prenoms
-                : eleve?.nom || "Élève"}{" "}
+              {eleve?.prenoms ||
+                eleve?.nom ||
+                "Élève"}{" "}
               👋
             </Text>
 
-            <Text style={styles.welcomeSubtitle}>
+            <Text
+              style={
+                styles.welcomeSubtitle
+              }
+            >
               Niveau :{" "}
-              {eleve?.niveau || niveauNormalise}
+              {eleve?.niveau ||
+                niveauNormalise}
             </Text>
           </View>
 
           <TouchableOpacity
             style={styles.menuCard}
-            onPress={() => setEcran("MATIERES")}
+            onPress={() =>
+              setEcran("MATIERES")
+            }
           >
-            <Text style={styles.menuIcon}>
+            <Text
+              style={styles.menuIcon}
+            >
               📚
             </Text>
 
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
+            <View
+              style={
+                styles.menuTextContainer
+              }
+            >
+              <Text
+                style={styles.menuTitle}
+              >
                 Matières
               </Text>
 
-              <Text style={styles.menuDescription}>
+              <Text
+                style={
+                  styles.menuDescription
+                }
+              >
                 Accéder aux matières de votre niveau
               </Text>
             </View>
 
-            <Text style={styles.arrow}>
+            <Text
+              style={styles.arrow}
+            >
               ›
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.menuCard}
-            onPress={reinitialiserQuiz}
+            onPress={
+              reinitialiserQuiz
+            }
           >
-            <Text style={styles.menuIcon}>
+            <Text
+              style={styles.menuIcon}
+            >
               🧠
             </Text>
 
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
+            <View
+              style={
+                styles.menuTextContainer
+              }
+            >
+              <Text
+                style={styles.menuTitle}
+              >
                 Quiz
               </Text>
 
-              <Text style={styles.menuDescription}>
+              <Text
+                style={
+                  styles.menuDescription
+                }
+              >
                 Testez vos connaissances
               </Text>
             </View>
 
-            <Text style={styles.arrow}>
+            <Text
+              style={styles.arrow}
+            >
               ›
             </Text>
           </TouchableOpacity>
@@ -836,21 +1262,35 @@ export default function App() {
               )
             }
           >
-            <Text style={styles.menuIcon}>
+            <Text
+              style={styles.menuIcon}
+            >
               ✏️
             </Text>
 
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
+            <View
+              style={
+                styles.menuTextContainer
+              }
+            >
+              <Text
+                style={styles.menuTitle}
+              >
                 Exercices
               </Text>
 
-              <Text style={styles.menuDescription}>
+              <Text
+                style={
+                  styles.menuDescription
+                }
+              >
                 Entraînez-vous
               </Text>
             </View>
 
-            <Text style={styles.arrow}>
+            <Text
+              style={styles.arrow}
+            >
               ›
             </Text>
           </TouchableOpacity>
@@ -865,88 +1305,158 @@ export default function App() {
 
   if (ecran === "MATIERES") {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title="Matières"
           onBack={retourAccueil}
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.pageTitle}>
-            {eleve?.niveau || niveauNormalise}
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <Text
+            style={styles.pageTitle}
+          >
+            {eleve?.niveau ||
+              niveauNormalise}
           </Text>
 
-          <Text style={styles.pageSubtitle}>
+          <Text
+            style={styles.pageSubtitle}
+          >
             Choisissez une matière
           </Text>
 
-          {Array.isArray(matieres) &&
-            matieres.map((matiere, index) => (
+          {matieres.map(
+            (matiere, index) => (
               <TouchableOpacity
-                key={matiere?.id || index}
-                style={styles.subjectCard}
-                onPress={() => ouvrirMatiere(matiere)}
+                key={
+                  matiere?.id ||
+                  String(index)
+                }
+                style={
+                  styles.subjectCard
+                }
+                onPress={() =>
+                  ouvrirMatiere(
+                    matiere
+                  )
+                }
               >
-                <Text style={styles.subjectIcon}>
-                  {matiere?.icon || "📚"}
+                <Text
+                  style={
+                    styles.subjectIcon
+                  }
+                >
+                  {matiere?.icon ||
+                    "📚"}
                 </Text>
 
-                <View style={styles.subjectInfo}>
-                  <Text style={styles.subjectTitle}>
-                    {matiere?.nom || "Matière"}
+                <View
+                  style={
+                    styles.subjectInfo
+                  }
+                >
+                  <Text
+                    style={
+                      styles.subjectTitle
+                    }
+                  >
+                    {matiere?.nom ||
+                      "Matière"}
                   </Text>
 
-                  <Text style={styles.subjectDescription}>
-                    {matiere?.description || ""}
+                  <Text
+                    style={
+                      styles.subjectDescription
+                    }
+                  >
+                    {matiere?.description ||
+                      ""}
                   </Text>
                 </View>
 
-                <Text style={styles.arrow}>
+                <Text
+                  style={styles.arrow}
+                >
                   ›
                 </Text>
               </TouchableOpacity>
-            ))}
+            )
+          )}
         </ScrollView>
       </SafeAreaView>
     );
   }
 
   /* =======================================================
-     FRANÇAIS CP1
+     FRANÇAIS
      ======================================================= */
 
   if (ecran === "FRANCAIS") {
-    const rubriquesAffichees = estCP1
-      ? RUBRIQUES_FRANCAIS_CP1
-      : rubriquesFrançais;
+    const rubriquesAffichees =
+      estCP1
+        ? rubriquesFrancaisCP1
+        : rubriquesFrancais;
 
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title="Français"
           onBack={retourMatieres}
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.pageTitle}>
-            Français — {niveauNormalise}
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <Text
+            style={styles.pageTitle}
+          >
+            Français —{" "}
+            {niveauNormalise}
           </Text>
 
           {estCP1 && (
-            <View style={styles.programCard}>
-              <Text style={styles.programBadge}>
+            <View
+              style={styles.programCard}
+            >
+              <Text
+                style={
+                  styles.programBadge
+                }
+              >
                 PNAPAS
               </Text>
 
-              <Text style={styles.programTitle}>
+              <Text
+                style={
+                  styles.programTitle
+                }
+              >
                 Français CP1
               </Text>
 
-              <Text style={styles.programText}>
+              <Text
+                style={
+                  styles.programText
+                }
+              >
                 Premiers apprentissages de la lecture,
                 de l'écriture, de la compréhension et
                 de l'expression orale.
@@ -954,123 +1464,9 @@ export default function App() {
             </View>
           )}
 
-          <Text style={styles.pageSubtitle}>
-            Choisissez une rubrique
-          </Text>
-
-          {Array.isArray(rubriquesAffichees) &&
-            rubriquesAffichees.map(
-              (rubrique, index) => (
-                <TouchableOpacity
-                  key={rubrique?.id || index}
-                  style={styles.subjectCard}
-                  onPress={() =>
-                    ouvrirRubrique(rubrique)
-                  }
-                >
-                  <Text style={styles.subjectIcon}>
-                    {rubrique?.icon || "📖"}
-                  </Text>
-
-                  <View style={styles.subjectInfo}>
-                    <Text style={styles.subjectTitle}>
-                      {rubrique?.nom || "Rubrique"}
-                    </Text>
-
-                    {rubrique?.description ? (
-                      <Text
-                        style={
-                          styles.subjectDescription
-                        }
-                      >
-                        {rubrique.description}
-                      </Text>
-                    ) : null}
-
-                    {rubrique?.progression ? (
-                      <Text
-                        style={
-                          styles.progressionMini
-                        }
-                      >
-                        Progression disponible
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  <Text style={styles.arrow}>
-                    ›
-                  </Text>
-                </TouchableOpacity>
-              )
-            )}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  /* =======================================================
-     MATHÉMATIQUES CP1
-     ======================================================= */
-
-  if (ecran === "MATHEMATIQUES") {
-    const rubriquesAffichees = estCP1
-      ? rubriquesMathsCP1
-      : [
-          {
-            id: "nombres",
-            nom: "Nombres",
-            icon: "🔢",
-          },
-          {
-            id: "calcul",
-            nom: "Calcul",
-            icon: "➕",
-          },
-          {
-            id: "problemes",
-            nom: "Problèmes",
-            icon: "🧩",
-          },
-          {
-            id: "geometrie",
-            nom: "Géométrie",
-            icon: "📐",
-          },
-        ];
-
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
-
-        <Header
-          title="Mathématiques"
-          onBack={retourMatieres}
-        />
-
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.pageTitle}>
-            Mathématiques — {niveauNormalise}
-          </Text>
-
-          {estCP1 && (
-            <View style={styles.programCard}>
-              <Text style={styles.programBadge}>
-                PNAPAS
-              </Text>
-
-              <Text style={styles.programTitle}>
-                Mathématiques CP1
-              </Text>
-
-              <Text style={styles.programText}>
-                Nombres, calcul, géométrie et résolution
-                de problèmes.
-              </Text>
-            </View>
-          )}
-
-          <Text style={styles.pageSubtitle}>
+          <Text
+            style={styles.pageSubtitle}
+          >
             Choisissez une rubrique
           </Text>
 
@@ -1078,19 +1474,37 @@ export default function App() {
             (rubrique, index) => (
               <TouchableOpacity
                 key={
-                  rubrique?.id || index
+                  rubrique?.id ||
+                  String(index)
                 }
-                style={styles.subjectCard}
+                style={
+                  styles.subjectCard
+                }
                 onPress={() =>
-                  ouvrirRubrique(rubrique)
+                  ouvrirRubrique(
+                    rubrique
+                  )
                 }
               >
-                <Text style={styles.subjectIcon}>
-                  {rubrique?.icon || "📚"}
+                <Text
+                  style={
+                    styles.subjectIcon
+                  }
+                >
+                  {rubrique?.icon ||
+                    "📖"}
                 </Text>
 
-                <View style={styles.subjectInfo}>
-                  <Text style={styles.subjectTitle}>
+                <View
+                  style={
+                    styles.subjectInfo
+                  }
+                >
+                  <Text
+                    style={
+                      styles.subjectTitle
+                    }
+                  >
                     {rubrique?.nom ||
                       "Rubrique"}
                   </Text>
@@ -1101,12 +1515,186 @@ export default function App() {
                         styles.subjectDescription
                       }
                     >
-                      {rubrique.description}
+                      {
+                        rubrique.description
+                      }
+                    </Text>
+                  ) : null}
+
+                  {rubrique?.progression ? (
+                    <Text
+                      style={
+                        styles.progressionMini
+                      }
+                    >
+                      Progression disponible
                     </Text>
                   ) : null}
                 </View>
 
-                <Text style={styles.arrow}>
+                <Text
+                  style={styles.arrow}
+                >
+                  ›
+                </Text>
+              </TouchableOpacity>
+            )
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  /* =======================================================
+     MATHÉMATIQUES
+     ======================================================= */
+
+  if (
+    ecran === "MATHEMATIQUES"
+  ) {
+    const rubriquesAffichees =
+      estCP1
+        ? rubriquesMaths
+        : [
+            {
+              id: "nombres",
+              nom: "Nombres",
+              icon: "🔢",
+            },
+            {
+              id: "calcul",
+              nom: "Calcul",
+              icon: "➕",
+            },
+            {
+              id: "problemes",
+              nom: "Problèmes",
+              icon: "🧩",
+            },
+            {
+              id: "geometrie",
+              nom: "Géométrie",
+              icon: "📐",
+            },
+          ];
+
+    return (
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
+
+        <Header
+          title="Mathématiques"
+          onBack={retourMatieres}
+        />
+
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <Text
+            style={styles.pageTitle}
+          >
+            Mathématiques —{" "}
+            {niveauNormalise}
+          </Text>
+
+          {estCP1 && (
+            <View
+              style={styles.programCard}
+            >
+              <Text
+                style={
+                  styles.programBadge
+                }
+              >
+                PNAPAS
+              </Text>
+
+              <Text
+                style={
+                  styles.programTitle
+                }
+              >
+                Mathématiques CP1
+              </Text>
+
+              <Text
+                style={
+                  styles.programText
+                }
+              >
+                Nombres, calcul, géométrie et résolution
+                de problèmes.
+              </Text>
+            </View>
+          )}
+
+          <Text
+            style={styles.pageSubtitle}
+          >
+            Choisissez une rubrique
+          </Text>
+
+          {rubriquesAffichees.map(
+            (rubrique, index) => (
+              <TouchableOpacity
+                key={
+                  rubrique?.id ||
+                  String(index)
+                }
+                style={
+                  styles.subjectCard
+                }
+                onPress={() =>
+                  ouvrirRubrique(
+                    rubrique
+                  )
+                }
+              >
+                <Text
+                  style={
+                    styles.subjectIcon
+                  }
+                >
+                  {rubrique?.icon ||
+                    "📚"}
+                </Text>
+
+                <View
+                  style={
+                    styles.subjectInfo
+                  }
+                >
+                  <Text
+                    style={
+                      styles.subjectTitle
+                    }
+                  >
+                    {rubrique?.nom ||
+                      "Rubrique"}
+                  </Text>
+
+                  {rubrique?.description ? (
+                    <Text
+                      style={
+                        styles.subjectDescription
+                      }
+                    >
+                      {
+                        rubrique.description
+                      }
+                    </Text>
+                  ) : null}
+                </View>
+
+                <Text
+                  style={styles.arrow}
+                >
                   ›
                 </Text>
               </TouchableOpacity>
@@ -1121,10 +1709,16 @@ export default function App() {
      AUTRES MATIÈRES
      ======================================================= */
 
-  if (ecran === "MATIERE_DETAILS") {
+  if (
+    ecran === "MATIERE_DETAILS"
+  ) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title={
@@ -1134,18 +1728,30 @@ export default function App() {
           onBack={retourMatieres}
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.pageTitle}>
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <Text
+            style={styles.pageTitle}
+          >
             {matiereSelectionnee?.nom ||
               "Matière"}
           </Text>
 
-          <Text style={styles.pageSubtitle}>
+          <Text
+            style={styles.pageSubtitle}
+          >
             Contenu du programme
           </Text>
 
-          <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
+          <View
+            style={styles.infoCard}
+          >
+            <Text
+              style={styles.infoText}
+            >
               Le contenu de cette matière sera
               organisé selon le programme
               correspondant au niveau de l'élève.
@@ -1157,30 +1763,42 @@ export default function App() {
   }
 
   /* =======================================================
-     RUBRIQUE CP1
+     RUBRIQUE
      ======================================================= */
 
   if (ecran === "RUBRIQUE") {
-    const rubrique = rubriqueSelectionnee;
+    const rubrique =
+      rubriqueSelectionnee;
 
     const contenus = estCP1
-      ? getLeconsRubrique(rubrique)
+      ? getLeconsRubrique(
+          rubrique
+        )
       : (() => {
           let resultat = [];
 
           if (
-            rubrique?.id === "grammaire" &&
-            Array.isArray(programmeGrammaire)
+            rubrique?.id ===
+              "grammaire" &&
+            Array.isArray(
+              programmeGrammaire
+            )
           ) {
-            resultat = programmeGrammaire;
+            resultat =
+              programmeGrammaire;
           }
 
           if (
-            rubrique?.id === "lecture" ||
-            rubrique?.id === "ecriture" ||
-            rubrique?.id === "vocabulaire" ||
-            rubrique?.id === "expression" ||
-            rubrique?.id === "expression_orale"
+            [
+              "lecture",
+              "ecriture",
+              "écriture",
+              "vocabulaire",
+              "expression",
+              "expression_orale",
+            ].includes(
+              rubrique?.id
+            )
           ) {
             try {
               const contenu =
@@ -1190,7 +1808,9 @@ export default function App() {
                   rubrique.id
                 );
 
-              if (Array.isArray(contenu)) {
+              if (
+                Array.isArray(contenu)
+              ) {
                 resultat = contenu;
               }
             } catch (error) {
@@ -1213,17 +1833,23 @@ export default function App() {
             },
           ];
 
-    const progression = rubrique?.progression;
+    const progression =
+      rubrique?.progression;
 
-    const indexRubrique = Array.isArray(
-      rubrique?.index
-    )
-      ? rubrique.index
-      : [];
+    const indexRubrique =
+      Array.isArray(
+        rubrique?.index
+      )
+        ? rubrique.index
+        : [];
 
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title={
@@ -1233,34 +1859,56 @@ export default function App() {
           onBack={retourRubriques}
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.pageTitle}>
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <Text
+            style={styles.pageTitle}
+          >
             {rubrique?.nom ||
               "Rubrique"}
           </Text>
 
           {rubrique?.description ? (
-            <Text style={styles.pageSubtitle}>
-              {rubrique.description}
+            <Text
+              style={styles.pageSubtitle}
+            >
+              {
+                rubrique.description
+              }
             </Text>
           ) : null}
 
           {estCP1 && (
             <>
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>
+              <View
+                style={styles.sectionCard}
+              >
+                <Text
+                  style={
+                    styles.sectionTitle
+                  }
+                >
                   INDEX
                 </Text>
 
-                {indexRubrique.length > 0 ? (
+                {indexRubrique.length >
+                0 ? (
                   indexRubrique.map(
                     (item, index) => (
                       <Text
-                        key={index}
-                        style={styles.indexText}
+                        key={String(
+                          index
+                        )}
+                        style={
+                          styles.indexText
+                        }
                       >
                         {index + 1}.{" "}
-                        {typeof item === "string"
+                        {typeof item ===
+                        "string"
                           ? item
                           : item?.titre ||
                             item?.nom ||
@@ -1270,7 +1918,11 @@ export default function App() {
                     )
                   )
                 ) : (
-                  <Text style={styles.bulletText}>
+                  <Text
+                    style={
+                      styles.bulletText
+                    }
+                  >
                     Le programme est organisé
                     progressivement par chapitres
                     et leçons.
@@ -1278,29 +1930,48 @@ export default function App() {
                 )}
               </View>
 
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>
+              <View
+                style={styles.sectionCard}
+              >
+                <Text
+                  style={
+                    styles.sectionTitle
+                  }
+                >
                   PROGRESSION
                 </Text>
 
-                {Array.isArray(progression) ? (
+                {Array.isArray(
+                  progression
+                ) ? (
                   progression.map(
                     (item, index) => (
                       <Text
-                        key={index}
-                        style={styles.bulletText}
+                        key={String(
+                          index
+                        )}
+                        style={
+                          styles.bulletText
+                        }
                       >
                         •{" "}
-                        {typeof item === "string"
+                        {typeof item ===
+                        "string"
                           ? item
                           : item?.titre ||
                             item?.nom ||
-                            JSON.stringify(item)}
+                            JSON.stringify(
+                              item
+                            )}
                       </Text>
                     )
                   )
                 ) : (
-                  <Text style={styles.bulletText}>
+                  <Text
+                    style={
+                      styles.bulletText
+                    }
+                  >
                     {progression ||
                       "Progression pédagogique CP1 PNAPAS."}
                   </Text>
@@ -1309,12 +1980,22 @@ export default function App() {
             </>
           )}
 
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitleInline}>
+          <View
+            style={
+              styles.sectionHeaderRow
+            }
+          >
+            <Text
+              style={
+                styles.sectionTitleInline
+              }
+            >
               CHAPITRES ET LEÇONS
             </Text>
 
-            <Text style={styles.countBadge}>
+            <Text
+              style={styles.countBadge}
+            >
               {contenus.length}
             </Text>
           </View>
@@ -1336,11 +2017,14 @@ export default function App() {
                   key={
                     contenu?.code ||
                     contenu?.id ||
-                    index
+                    String(index)
                   }
-                  style={styles.lessonCard}
+                  style={
+                    styles.lessonCard
+                  }
                   onPress={() =>
-                    contenus.length > 0
+                    contenus.length >
+                    0
                       ? ouvrirLecon(
                           contenu
                         )
@@ -1464,14 +2148,22 @@ export default function App() {
      ÉVALUATION CP1
      ======================================================= */
 
-  if (ecran === "CP1_EVALUATION") {
-    const rubrique = rubriqueSelectionnee;
+  if (
+    ecran === "CP1_EVALUATION"
+  ) {
+    const rubrique =
+      rubriqueSelectionnee;
+
     const evaluation =
       rubrique?.evaluation;
 
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title="Évaluation"
@@ -1480,25 +2172,49 @@ export default function App() {
           }
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.pageTitle}>
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <Text
+            style={styles.pageTitle}
+          >
             Évaluation
           </Text>
 
-          <Text style={styles.pageSubtitle}>
+          <Text
+            style={styles.pageSubtitle}
+          >
             {rubrique?.nom || "CP1"}
           </Text>
 
-          <View style={styles.evaluationMainCard}>
-            <Text style={styles.evaluationBigIcon}>
+          <View
+            style={
+              styles.evaluationMainCard
+            }
+          >
+            <Text
+              style={
+                styles.evaluationBigIcon
+              }
+            >
               📝
             </Text>
 
-            <Text style={styles.evaluationMainTitle}>
+            <Text
+              style={
+                styles.evaluationMainTitle
+              }
+            >
               Évaluation des acquis
             </Text>
 
-            <Text style={styles.evaluationMainText}>
+            <Text
+              style={
+                styles.evaluationMainText
+              }
+            >
               {typeof evaluation ===
               "string"
                 ? evaluation
@@ -1526,9 +2242,14 @@ export default function App() {
                 </Text>
 
                 {evaluation.criteres.map(
-                  (critere, index) => (
+                  (
+                    critere,
+                    index
+                  ) => (
                     <Text
-                      key={index}
+                      key={String(
+                        index
+                      )}
                       style={
                         styles.bulletText
                       }
@@ -1548,7 +2269,9 @@ export default function App() {
                 styles.primaryButton
               }
               onPress={() =>
-                setEcran("RUBRIQUE")
+                setEcran(
+                  "RUBRIQUE"
+                )
               }
             >
               <Text
@@ -1571,7 +2294,9 @@ export default function App() {
 
   if (ecran === "LECON") {
     const lecon = estCP1
-      ? getLeconCP1(chapitreSelectionne)
+      ? getLeconCP1(
+          chapitreSelectionne
+        )
       : chapitreSelectionne || {};
 
     const titre =
@@ -1580,8 +2305,7 @@ export default function App() {
       "Leçon";
 
     const objectif =
-      lecon?.objectif ||
-      "";
+      lecon?.objectif || "";
 
     const explication =
       lecon?.explication ||
@@ -1590,30 +2314,31 @@ export default function App() {
       "";
 
     const regle =
-      lecon?.regle ||
-      "";
+      lecon?.regle || "";
 
-    const exemples = Array.isArray(
-      lecon?.exemples
-    )
-      ? lecon.exemples
-      : [];
+    const exemples =
+      Array.isArray(
+        lecon?.exemples
+      )
+        ? lecon.exemples
+        : [];
 
-    const corriges = Array.isArray(
-      lecon?.corriges
-    )
-      ? lecon.corriges
-      : [];
+    const corriges =
+      Array.isArray(
+        lecon?.corriges
+      )
+        ? lecon.corriges
+        : [];
 
     const retenir =
-      lecon?.retenir ||
-      "";
+      lecon?.retenir || "";
 
-    const decodables = Array.isArray(
-      lecon?.decodables
-    )
-      ? lecon.decodables
-      : [];
+    const decodables =
+      Array.isArray(
+        lecon?.decodables
+      )
+        ? lecon.decodables
+        : [];
 
     const manipulations =
       Array.isArray(
@@ -1637,8 +2362,12 @@ export default function App() {
         : [];
 
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title="Leçon"
@@ -1647,10 +2376,22 @@ export default function App() {
           }
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.lessonHeaderCard}>
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <View
+            style={
+              styles.lessonHeaderCard
+            }
+          >
             {lecon?.code ? (
-              <Text style={styles.codeBadge}>
+              <Text
+                style={
+                  styles.codeBadge
+                }
+              >
                 {lecon.code}
               </Text>
             ) : null}
@@ -1682,14 +2423,21 @@ export default function App() {
                     styles.objectiveText
                   }
                 >
-                  {objectif}
+                  {typeof objectif ===
+                  "string"
+                    ? objectif
+                    : JSON.stringify(
+                        objectif
+                      )}
                 </Text>
               </View>
             ) : null}
           </View>
 
           {explication ? (
-            <View style={styles.sectionCard}>
+            <View
+              style={styles.sectionCard}
+            >
               <Text
                 style={
                   styles.sectionTitle
@@ -1714,7 +2462,9 @@ export default function App() {
           ) : null}
 
           {regle ? (
-            <View style={styles.ruleCard}>
+            <View
+              style={styles.ruleCard}
+            >
               <Text
                 style={
                   styles.sectionTitle
@@ -1724,9 +2474,7 @@ export default function App() {
               </Text>
 
               <Text
-                style={
-                  styles.ruleText
-                }
+                style={styles.ruleText}
               >
                 {typeof regle ===
                 "string"
@@ -1739,7 +2487,9 @@ export default function App() {
           ) : null}
 
           {exemples.length > 0 && (
-            <View style={styles.sectionCard}>
+            <View
+              style={styles.sectionCard}
+            >
               <Text
                 style={
                   styles.sectionTitle
@@ -1751,7 +2501,9 @@ export default function App() {
               {exemples.map(
                 (exemple, index) => (
                   <Text
-                    key={index}
+                    key={String(
+                      index
+                    )}
                     style={
                       styles.bulletText
                     }
@@ -1770,7 +2522,11 @@ export default function App() {
           )}
 
           {decodables.length > 0 && (
-            <View style={styles.decodableCard}>
+            <View
+              style={
+                styles.decodableCard
+              }
+            >
               <Text
                 style={
                   styles.sectionTitle
@@ -1782,7 +2538,9 @@ export default function App() {
               {decodables.map(
                 (item, index) => (
                   <View
-                    key={index}
+                    key={String(
+                      index
+                    )}
                     style={
                       styles.decodableItem
                     }
@@ -1805,8 +2563,11 @@ export default function App() {
             </View>
           )}
 
-          {manipulations.length > 0 && (
-            <View style={styles.sectionCard}>
+          {manipulations.length >
+            0 && (
+            <View
+              style={styles.sectionCard}
+            >
               <Text
                 style={
                   styles.sectionTitle
@@ -1818,7 +2579,9 @@ export default function App() {
               {manipulations.map(
                 (item, index) => (
                   <Text
-                    key={index}
+                    key={String(
+                      index
+                    )}
                     style={
                       styles.bulletText
                     }
@@ -1837,7 +2600,11 @@ export default function App() {
           )}
 
           {retenir ? (
-            <View style={styles.retenirCard}>
+            <View
+              style={
+                styles.retenirCard
+              }
+            >
               <Text
                 style={
                   styles.sectionTitle
@@ -1862,7 +2629,9 @@ export default function App() {
           ) : null}
 
           {corriges.length > 0 && (
-            <View style={styles.sectionCard}>
+            <View
+              style={styles.sectionCard}
+            >
               <Text
                 style={
                   styles.sectionTitle
@@ -1874,7 +2643,9 @@ export default function App() {
               {corriges.map(
                 (item, index) => (
                   <Text
-                    key={index}
+                    key={String(
+                      index
+                    )}
                     style={
                       styles.bulletText
                     }
@@ -1899,7 +2670,8 @@ export default function App() {
                   styles.activityButton
                 }
                 onPress={() =>
-                  exercices.length > 0
+                  exercices.length >
+                  0
                     ? setEcran(
                         "CP1_EXERCICES"
                       )
@@ -1935,7 +2707,8 @@ export default function App() {
                       styles.activityText
                     }
                   >
-                    {exercices.length} exercice(s)
+                    {exercices.length}{" "}
+                    exercice(s)
                     disponible(s)
                   </Text>
                 </View>
@@ -1986,7 +2759,8 @@ export default function App() {
                       styles.activityText
                     }
                   >
-                    {quiz.length} question(s)
+                    {quiz.length}{" "}
+                    question(s)
                     disponible(s)
                   </Text>
                 </View>
@@ -2008,10 +2782,13 @@ export default function App() {
      EXERCICES CP1
      ======================================================= */
 
-  if (ecran === "CP1_EXERCICES") {
-    const lecon = getLeconCP1(
-      chapitreSelectionne
-    );
+  if (
+    ecran === "CP1_EXERCICES"
+  ) {
+    const lecon =
+      getLeconCP1(
+        chapitreSelectionne
+      );
 
     const exercices =
       Array.isArray(
@@ -2021,8 +2798,12 @@ export default function App() {
         : [];
 
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title="Exercices"
@@ -2031,18 +2812,32 @@ export default function App() {
           }
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.pageTitle}>
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
+          <Text
+            style={styles.pageTitle}
+          >
             Exercices
           </Text>
 
-          <Text style={styles.pageSubtitle}>
-            {lecon?.titre || "Leçon CP1"}
+          <Text
+            style={styles.pageSubtitle}
+          >
+            {lecon?.titre ||
+              "Leçon CP1"}
           </Text>
 
-          {exercices.length === 0 ? (
-            <View style={styles.infoCard}>
-              <Text style={styles.infoText}>
+          {exercices.length ===
+          0 ? (
+            <View
+              style={styles.infoCard}
+            >
+              <Text
+                style={styles.infoText}
+              >
                 Aucun exercice disponible.
               </Text>
             </View>
@@ -2052,7 +2847,7 @@ export default function App() {
                 <View
                   key={
                     exercice?.id ||
-                    index
+                    String(index)
                   }
                   style={
                     styles.exerciseCard
@@ -2063,7 +2858,8 @@ export default function App() {
                       styles.exerciseNumber
                     }
                   >
-                    Exercice {index + 1}
+                    Exercice{" "}
+                    {index + 1}
                   </Text>
 
                   {exercice?.difficulte ? (
@@ -2099,9 +2895,9 @@ export default function App() {
                         optionIndex
                       ) => (
                         <View
-                          key={
+                          key={String(
                             optionIndex
-                          }
+                          )}
                           style={
                             styles.exerciseOption
                           }
@@ -2160,7 +2956,9 @@ export default function App() {
 
   if (ecran === "QUIZ") {
     if (
-      !Array.isArray(banqueQuiz) ||
+      !Array.isArray(
+        banqueQuiz
+      ) ||
       banqueQuiz.length === 0
     ) {
       return (
@@ -2349,7 +3147,11 @@ export default function App() {
           }
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
           <View
             style={
               styles.quizProgress
@@ -2367,16 +3169,14 @@ export default function App() {
           </View>
 
           <View
-            style={
-              styles.quizCard
-            }
+            style={styles.quizCard}
           >
             <Text
               style={
                 styles.questionText
               }
             >
-              {question}
+              {String(question)}
             </Text>
 
             {options.map(
@@ -2417,7 +3217,9 @@ export default function App() {
 
                 return (
                   <TouchableOpacity
-                    key={index}
+                    key={String(
+                      index
+                    )}
                     style={
                       styles.optionButton
                     }
@@ -2461,29 +3263,40 @@ export default function App() {
      CHAPITRES CM2
      ======================================================= */
 
-  if (ecran === "CHAPITRES_CM2") {
-    const chapitres = Array.isArray(
-      CHAPITRES_CM2
-    )
-      ? CHAPITRES_CM2
-      : [];
+  if (
+    ecran === "CHAPITRES_CM2"
+  ) {
+    const chapitres =
+      Array.isArray(
+        CHAPITRES_CM2
+      )
+        ? CHAPITRES_CM2
+        : [];
 
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView
+        style={styles.container}
+      >
+        <StatusBar
+          barStyle="light-content"
+        />
 
         <Header
           title="Grammaire CM2"
           onBack={retourRubriques}
         />
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={
+            styles.content
+          }
+        >
           {chapitres.map(
             (chapitre, index) => (
               <TouchableOpacity
                 key={
                   chapitre?.id ||
-                  index
+                  String(index)
                 }
                 style={
                   styles.lessonCard
@@ -3321,4 +4134,3 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 });
-```
