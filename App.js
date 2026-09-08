@@ -1,5 +1,10 @@
 ﻿import React, { useState } from "react";
 import {
+  RUBRIQUES_FRANCAIS_CP1,
+  RUBRIQUES_MATHS_CP1,
+  getCP1Lesson,
+} from "./src/data/CP1";
+import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
