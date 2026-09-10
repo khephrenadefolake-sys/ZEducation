@@ -5,10 +5,10 @@
 
 import React, { useState } from "react";
 
-import AppNavigation from "./src/navigation/AppNavigation";
+import AppNavigation from "./AppNavigation";
 
-import { EXERCICES } from "./src/data/exercices";
-import { QUIZ } from "./src/data/quiz";
+import { EXERCICES } from "../data/exercices";
+import { QUIZ } from "../data/quiz";
 
 // =========================================================
 // APPLICATION

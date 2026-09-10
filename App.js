@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   SafeAreaView,
   StatusBar,
@@ -13,11 +13,10 @@ import {
 
 import WelcomeScreen from "./src/screens/WelcomeScreen";
 import Header from "./src/components/Header";
-
 import { NIVEAUX } from "./src/data/niveaux";
 
 /* =========================================================
-   MATIÈRES ET RUBRIQUES
+   MATIÃˆRES ET RUBRIQUES
    ========================================================= */
 
 import {
@@ -26,10 +25,15 @@ import {
   MATIERES_CP2,
   MATIERES_CE_CM,
 
-   RUBRIQUES_CP,
-  RUBRIQUES_CP2,
+  RUBRIQUES_CP,
   RUBRIQUES_FRANCAIS_CP1,
+  RUBRIQUES_FRANCAIS_CP2,
   RUBRIQUES_MATHEMATIQUES_CP1,
+  RUBRIQUES_MATHEMATIQUES_CP2,
+  LECONS_GRAMMAIRE_CM2,
+  LECONS_ORTHOGRAPHE_CM2,
+  LECONS_VOCABULAIRE_CM2,
+  LECONS_EXPRESSION_ECRITE_CM2,
   RUBRIQUES_CE_CM,
 } from "./src/data/matieres";
 
@@ -43,39 +47,63 @@ import {
 } from "./src/data/programmeCM2";
 
 /* =========================================================
-   DONNÉES GÉNÉRALES
+   DONNÃ‰ES GÃ‰NÃ‰RALES
    ========================================================= */
 
 import { QUIZ } from "./src/data/quiz";
+import { EXERCICES } from "./src/data/exercices";
 import { obtenirContenu } from "./src/data/lecons";
+
+const NOTIONS_IMPORTANTES = /(forme affirmative|forme négative|phrase déclarative|phrase interrogative|phrase exclamative|phrase impérative|phrase injonctive|phrase simple|phrase complexe|type de phrase|mots de négation|ne\.\.\. pas|ne\.\.\. plus|ne\.\.\. jamais|ne\.\.\. rien|ne\.\.\. personne|ne\.\.\. ni\.\.\. ni|à l'impératif|verbe conjugué|proposition|groupe nominal|groupe verbal|complément du nom|complément d'objet direct|complément d'objet indirect|complément d'objet second|compléments circonstanciels|COD|COI|COS|pronom personnel|pronom relatif|voix active|voix passive|complément d'agent|discours direct|discours indirect|analyse grammaticale|dictionnaire|ordre alphabétique|sens propre|sens figuré|synonyme|antonyme|homonyme|famille de mots|radical|préfixe|suffixe|mot générique|mot particulier|niveau de langue|locution|expression)/gi;
+
+function TexteAvecNotions({ children, style }) {
+  const texte = Array.isArray(children)
+    ? children.join("")
+    : String(children ?? "");
+  const morceaux = texte.split(NOTIONS_IMPORTANTES);
+
+  return (
+    <Text style={style}>
+      {morceaux.map((morceau, index) =>
+        index % 2 === 1 ? (
+          <Text key={`${morceau}-${index}`} style={styles.notionImportant}>
+            {morceau}
+          </Text>
+        ) : (
+          morceau
+        )
+      )}
+    </Text>
+  );
+}
 /* =========================================================
-   DONNÉES CP1 PNAPAS
+   DONNÃ‰ES CP1 PNAPAS
    ========================================================= */
 
 /*
- * Import global volontairement utilisé ici.
+ * Import global volontairement utilisÃ© ici.
  *
- * Cela permet à App.js d'accéder aux données CP1 même si
- * certaines exportations auxiliaires ne sont pas présentes
+ * Cela permet Ã  App.js d'accÃ©der aux donnÃ©es CP1 mÃªme si
+ * certaines exportations auxiliaires ne sont pas prÃ©sentes
  * dans src/data/CP1/index.js.
  *
- * Les données CP1 disponibles sont recherchées de manière
- * sécurisée dans l'objet CP1_DATA.
+ * Les donnÃ©es CP1 disponibles sont recherchÃ©es de maniÃ¨re
+ * sÃ©curisÃ©e dans l'objet CP1_DATA.
  */
 import * as CP1_DATA from "./src/data/CP1";
 
 /* =========================================================
-   SÉCURISATION DES RUBRIQUES CP1
+   SÃ‰CURISATION DES RUBRIQUES CP1
    ========================================================= */
 
 /*
- * Français CP1 :
- * Pré-lecture
- * Lecture-écriture
- * Compréhension
+ * FranÃ§ais CP1 :
+ * PrÃ©-lecture
+ * Lecture-Ã©criture
+ * ComprÃ©hension
  * Expression orale
  * Exercices
- * Évaluation
+ * Ã‰valuation
  */
 const rubriquesFrancaisCP1 =
   Array.isArray(RUBRIQUES_FRANCAIS_CP1)
@@ -85,25 +113,24 @@ const rubriquesFrancaisCP1 =
       : [];
 
 /*
- * Mathématiques CP1 :
+ * MathÃ©matiques CP1 :
  * Nombres
  * Calcul
- * Géométrie
- * Problèmes
+ * GÃ©omÃ©trie
+ * ProblÃ¨mes
  */
-const rubriquesMathsCP1 =
-  Array.isArray(RUBRIQUES_MATHEMATIQUES_CP1)
-    ? RUBRIQUES_MATHEMATIQUES_CP1
-    : Array.isArray(CP1_DATA.RUBRIQUES_MATHEMATIQUES_CP1)
-      ? CP1_DATA.RUBRIQUES_MATHEMATIQUES_CP1
-      : [];
+const rubriquesMathsCP1 = Array.isArray(RUBRIQUES_MATHEMATIQUES_CP1)
+  ? RUBRIQUES_MATHEMATIQUES_CP1
+  : Array.isArray(CP1_DATA.RUBRIQUES_MATHEMATIQUES_CP1)
+  ? CP1_DATA.RUBRIQUES_MATHEMATIQUES_CP1
+  : [];
 
 /* =========================================================
-   DONNÉES COMPLÈTES CP1
+   DONNÃ‰ES COMPLÃˆTES CP1
    ========================================================= */
 
 /*
- * On récupère l'objet CP1 exporté par src/data/CP1/index.js
+ * On rÃ©cupÃ¨re l'objet CP1 exportÃ© par src/data/CP1/index.js
  * lorsqu'il existe.
  */
 const donneesCP1 =
@@ -113,19 +140,19 @@ const donneesCP1 =
     : {};
 
 /* =========================================================
-   FONCTION DE RECHERCHE D'UNE LEÇON CP1
+   FONCTION DE RECHERCHE D'UNE LEÃ‡ON CP1
    ========================================================= */
 
 /*
- * Recherche récursive d'une leçon dans les différentes
- * structures de données CP1.
+ * Recherche rÃ©cursive d'une leÃ§on dans les diffÃ©rentes
+ * structures de donnÃ©es CP1.
  *
  * La recherche accepte aussi bien :
  *   - id
  *   - code
  *
- * Cela rend App.js compatible avec les différents fichiers
- * pédagogiques CP1.
+ * Cela rend App.js compatible avec les diffÃ©rents fichiers
+ * pÃ©dagogiques CP1.
  */
 const chercherLeconDansDonnees = (
   donnees,
@@ -200,7 +227,7 @@ const chercherLeconDansDonnees = (
 };
 
 /* =========================================================
-   RÉCUPÉRATION SÉCURISÉE D'UNE LEÇON CP1
+   RÃ‰CUPÃ‰RATION SÃ‰CURISÃ‰E D'UNE LEÃ‡ON CP1
    ========================================================= */
 
 const getLeconCP1 = (lecon) => {
@@ -212,7 +239,7 @@ const getLeconCP1 = (lecon) => {
     lecon?.code || lecon?.id;
 
   /*
-   * Si l'objet reçu contient déjà le contenu complet,
+   * Si l'objet reÃ§u contient dÃ©jÃ  le contenu complet,
    * on le conserve.
    */
   if (!identifiant) {
@@ -220,7 +247,7 @@ const getLeconCP1 = (lecon) => {
   }
 
   /* ---------------------------------------------
-     1. Fonction officielle éventuelle
+     1. Fonction officielle Ã©ventuelle
      --------------------------------------------- */
   if (
     typeof CP1_DATA.getCP1Lesson ===
@@ -244,7 +271,7 @@ const getLeconCP1 = (lecon) => {
   }
 
   /* ---------------------------------------------
-     2. Recherche dans les données CP1
+     2. Recherche dans les donnÃ©es CP1
      --------------------------------------------- */
   const resultatCP1 =
     chercherLeconDansDonnees(
@@ -274,7 +301,7 @@ const getLeconCP1 = (lecon) => {
 
   /*
    * Si aucune recherche ne trouve une autre version,
-   * on retourne la leçon reçue.
+   * on retourne la leÃ§on reÃ§ue.
    */
   return lecon;
 };
@@ -284,7 +311,7 @@ const getLeconCP1 = (lecon) => {
 
 export default function App() {
   /* =======================================================
-     ÉTATS
+     Ã‰TATS
      ======================================================= */
 
   const [ecran, setEcran] = useState("WELCOME");
@@ -293,20 +320,21 @@ export default function App() {
 
   const [nom, setNom] = useState("");
   const [prenoms, setPrenoms] = useState("");
-  const [niveau, setNiveau] = useState("");
-
   const [email, setEmail] = useState("");
   const [confirmationEmail, setConfirmationEmail] = useState("");
 
   const [motDePasse, setMotDePasse] = useState("");
-  const [confirmationMotDePasse, setConfirmationMotDePasse] =
-    useState("");
+  const [motDePasseVisible, setMotDePasseVisible] = useState(false);
+  const [notificationsAcceptees, setNotificationsAcceptees] =
+    useState(false);
 
   const [emailConnexion, setEmailConnexion] = useState("");
   const [motDePasseConnexion, setMotDePasseConnexion] =
     useState("");
 
-  const [niveauOuvert, setNiveauOuvert] = useState(false);
+  const [emailParent, setEmailParent] = useState("");
+  const [niveauParent, setNiveauParent] = useState("");
+  const [niveauParentOuvert, setNiveauParentOuvert] = useState(false);
 
   const [niveauSelectionne, setNiveauSelectionne] = useState(null);
 
@@ -326,18 +354,24 @@ export default function App() {
   const [quizIndex, setQuizIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [quizTermine, setQuizTermine] = useState(false);
+  const [dernierScoreQuiz, setDernierScoreQuiz] = useState(0);
+  const [dernierTotalQuiz, setDernierTotalQuiz] = useState(0);
 
   /* =======================================================
-     DONNÉES CP1 SÉCURISÉES
+     DONNÃ‰ES CP1 SÃ‰CURISÃ‰ES
      ======================================================= */
 
   const rubriquesFrancaisCP1 =
-    Array.isArray(CP1_DATA.RUBRIQUES_FRANCAIS_CP1)
+    Array.isArray(RUBRIQUES_FRANCAIS_CP1)
+      ? RUBRIQUES_FRANCAIS_CP1
+      : Array.isArray(CP1_DATA.RUBRIQUES_FRANCAIS_CP1)
       ? CP1_DATA.RUBRIQUES_FRANCAIS_CP1
       : [];
 
   const rubriquesMathsCP1 =
-    Array.isArray(CP1_DATA.RUBRIQUES_MATHS_CP1)
+    Array.isArray(RUBRIQUES_MATHEMATIQUES_CP1)
+      ? RUBRIQUES_MATHEMATIQUES_CP1
+      : Array.isArray(CP1_DATA.RUBRIQUES_MATHS_CP1)
       ? CP1_DATA.RUBRIQUES_MATHS_CP1
       : [];
 
@@ -351,7 +385,7 @@ export default function App() {
      ======================================================= */
 
   const niveauNormalise = String(
-    eleve?.niveau || niveauSelectionne || niveau || ""
+    eleve?.niveau || niveauSelectionne || ""
   )
     .toUpperCase()
     .replace(/\s+/g, "");
@@ -364,10 +398,10 @@ export default function App() {
     niveauNormalise.startsWith("CP");
 
   /* =======================================================
-     MATIÈRES
+     MATIÃˆRES
      ======================================================= */
 
-   const matieres = estCP1
+   const matieresDeBase = estCP1
     ? Array.isArray(MATIERES_CP1)
       ? MATIERES_CP1
       : []
@@ -379,29 +413,102 @@ export default function App() {
     ? MATIERES_CE_CM
     : [];
 
+  const matieres = estCP
+    ? [
+        ...matieresDeBase,
+        {
+          id: "exercices",
+          nom: "Exercices",
+          icon: "✏️",
+          description: "Entraînez-vous avec des activités adaptées.",
+        },
+        {
+          id: "quiz",
+          nom: "Quiz",
+          icon: "🧠",
+          description: "Testez vos connaissances.",
+        },
+        {
+          id: "notes",
+          nom: "Notes",
+          icon: "📊",
+          description: "Consultez vos résultats et votre progression.",
+        },
+      ]
+    : matieresDeBase;
+
   /* =======================================================
-     RUBRIQUES FRANÇAIS
+     RUBRIQUES FRANÃ‡AIS
      ======================================================= */
 
   const rubriquesFrancais = estCP1
     ? rubriquesFrancaisCP1
     : estCP
-    ? Array.isArray(RUBRIQUES_CP)
-      ? RUBRIQUES_CP
+    ? Array.isArray(RUBRIQUES_FRANCAIS_CP2)
+      ? RUBRIQUES_FRANCAIS_CP2
       : []
     : Array.isArray(RUBRIQUES_CE_CM)
-    ? RUBRIQUES_CE_CM
+    ? niveauNormalise === "CM2"
+      ? RUBRIQUES_CE_CM
+          .filter(
+            (rubrique) =>
+              !["lecture", "ecriture"].includes(rubrique?.id)
+          )
+          .map((rubrique) => {
+            if (rubrique.id === "grammaire") {
+              return {
+                ...rubrique,
+                lecons: LECONS_GRAMMAIRE_CM2.map((titre, index) => ({
+                  id: `grammaire_cm2_${index + 1}`,
+                  titre,
+                })),
+              };
+            }
+
+            if (rubrique.id === "orthographe") {
+              return {
+                ...rubrique,
+                lecons: LECONS_ORTHOGRAPHE_CM2.map((titre, index) => ({
+                  id: `orthographe_cm2_${index + 1}`,
+                  titre,
+                })),
+              };
+            }
+
+            if (rubrique.id === "vocabulaire") {
+              return {
+                ...rubrique,
+                lecons: LECONS_VOCABULAIRE_CM2.map((titre, index) => ({
+                  id: `vocabulaire_cm2_${index + 1}`,
+                  titre,
+                })),
+              };
+            }
+
+            if (rubrique.id === "expression") {
+              return {
+                ...rubrique,
+                lecons: LECONS_EXPRESSION_ECRITE_CM2.map((titre, index) => ({
+                  id: `expression_ecrite_cm2_${index + 1}`,
+                  titre,
+                })),
+              };
+            }
+
+            return rubrique;
+          })
+      : RUBRIQUES_CE_CM
     : [];
 
   /* =======================================================
-     RUBRIQUES MATHÉMATIQUES
+     RUBRIQUES MATHÃ‰MATIQUES
      ======================================================= */
 
   const rubriquesMaths = estCP1
     ? rubriquesMathsCP1
     : estCP
-    ? Array.isArray(RUBRIQUES_CP2)
-      ? RUBRIQUES_CP2
+    ? Array.isArray(RUBRIQUES_MATHEMATIQUES_CP2)
+      ? RUBRIQUES_MATHEMATIQUES_CP2
       : []
     : [];
 
@@ -416,7 +523,7 @@ export default function App() {
 
     return (
       id === "francais" ||
-      id === "français"
+      id === "franÃ§ais"
     );
   };
 
@@ -428,7 +535,7 @@ export default function App() {
     return (
       id === "maths" ||
       id === "mathematiques" ||
-      id === "mathématiques"
+      id === "mathÃ©matiques"
     );
   };
   /* =======================================================
@@ -459,7 +566,7 @@ export default function App() {
   };
 
   /* =======================================================
-     RECHERCHE RÉCURSIVE D'UNE LEÇON CP1
+     RECHERCHE RÃ‰CURSIVE D'UNE LEÃ‡ON CP1
      ======================================================= */
 
   const chercherLeconDansDonnees = (donnees, identifiant) => {
@@ -518,7 +625,7 @@ export default function App() {
   };
 
   /* =======================================================
-     RECHERCHE D'UNE LEÇON CP1
+     RECHERCHE D'UNE LEÃ‡ON CP1
      ======================================================= */
 
   const getLeconCP1 = (lecon) => {
@@ -577,7 +684,7 @@ export default function App() {
   };
 
   /* =======================================================
-     LEÇONS D'UNE RUBRIQUE
+     LEÃ‡ONS D'UNE RUBRIQUE
      ======================================================= */
 
   const getLeconsRubrique = (rubrique) => {
@@ -638,14 +745,10 @@ export default function App() {
         .trim()
         .toLowerCase();
 
-    if (
-      !nomPropre ||
-      !prenomsPropres ||
-      !niveau
-    ) {
+    if (!nomPropre || !prenomsPropres) {
       Alert.alert(
         "Champs incomplets",
-        "Veuillez renseigner le nom, les prénoms et le niveau."
+        "Veuillez renseigner le nom et les prénoms."
       );
       return;
     }
@@ -699,32 +802,19 @@ export default function App() {
       return;
     }
 
-    if (
-      motDePasse !==
-      confirmationMotDePasse
-    ) {
-      Alert.alert(
-        "Erreur",
-        "Les deux mots de passe ne correspondent pas."
-      );
-      return;
-    }
-
     const nouvelEleve = {
       nom: nomPropre,
       prenoms: prenomsPropres,
-      niveau,
+      niveau: null,
       email: emailPropre,
       motDePasse,
     };
 
     setEleve(nouvelEleve);
-    setNiveauSelectionne(niveau);
+    setNiveauSelectionne(null);
 
     setEmailConnexion(emailPropre);
     setMotDePasseConnexion("");
-
-    setNiveauOuvert(false);
 
     Alert.alert(
       "Compte créé",
@@ -805,6 +895,62 @@ export default function App() {
     setEcran("ACCUEIL");
   };
 
+  const connecterParent = () => {
+    const emailSaisi = emailParent.trim().toLowerCase();
+    const niveauSaisi = niveauParent.trim().toUpperCase().replace(/\s+/g, "");
+    const niveauEnfant = String(eleve?.niveau || "")
+      .toUpperCase()
+      .replace(/\s+/g, "");
+
+    if (!emailSaisi || !niveauSaisi) {
+      Alert.alert(
+        "Accès parent",
+        "Veuillez renseigner l'email et le niveau de votre enfant."
+      );
+      return;
+    }
+
+    if (!eleve) {
+      Alert.alert(
+        "Compte introuvable",
+        "L'enfant doit d'abord créer son compte."
+      );
+      return;
+    }
+
+    const niveauCorrespond =
+      !niveauEnfant || niveauSaisi === niveauEnfant;
+
+    if (emailSaisi !== eleve.email || !niveauCorrespond) {
+      Alert.alert(
+        "Accès refusé",
+        "L'email ou le niveau ne correspond pas au compte de l'enfant."
+      );
+      return;
+    }
+
+    if (!niveauEnfant) {
+      const eleveAvecNiveau = {
+        ...eleve,
+        niveau: niveauSaisi,
+      };
+      setEleve(eleveAvecNiveau);
+      setNiveauSelectionne(niveauSaisi);
+    }
+
+    setMatiereSelectionnee(null);
+    setRubriqueSelectionnee(null);
+    setChapitreSelectionne(null);
+    setEcran("PARENT_PROGRESS");
+  };
+
+  const quitterAccesParent = () => {
+    setEmailParent("");
+    setNiveauParent("");
+    setNiveauParentOuvert(false);
+    setEcran("LOGIN");
+  };
+
   /* =======================================================
      NAVIGATION
      ======================================================= */
@@ -814,6 +960,44 @@ export default function App() {
     setRubriqueSelectionnee(null);
     setChapitreSelectionne(null);
     setEcran("ACCUEIL");
+  };
+
+  const choisirNiveauAccueil = (niveauChoisi) => {
+    setEleve((eleveActuel) =>
+      eleveActuel
+        ? { ...eleveActuel, niveau: niveauChoisi }
+        : eleveActuel
+    );
+    setNiveauSelectionne(niveauChoisi);
+    setMatiereSelectionnee(null);
+    setRubriqueSelectionnee(null);
+    setChapitreSelectionne(null);
+    setEcran("MATIERES");
+  };
+
+  const deconnecter = () => {
+    Alert.alert(
+      "Déconnexion",
+      "Voulez-vous vous déconnecter de votre compte ?",
+      [
+        {
+          text: "Annuler",
+          style: "cancel",
+        },
+        {
+          text: "Se déconnecter",
+          style: "destructive",
+          onPress: () => {
+            setMatiereSelectionnee(null);
+            setRubriqueSelectionnee(null);
+            setChapitreSelectionne(null);
+            setNiveauSelectionne(null);
+            setMotDePasseConnexion("");
+            setEcran("LOGIN");
+          },
+        },
+      ]
+    );
   };
 
   const retourMatieres = () => {
@@ -839,7 +1023,7 @@ export default function App() {
   };
 
   /* =======================================================
-     OUVRIR UNE MATIÈRE
+     OUVRIR UNE MATIÃˆRE
      ======================================================= */
 
   const ouvrirMatiere = (matiere) => {
@@ -858,6 +1042,21 @@ export default function App() {
       estMatiereMaths(matiere)
     ) {
       setEcran("MATHEMATIQUES");
+      return;
+    }
+
+    if (matiere?.id === "exercices") {
+      setEcran("EXERCICES_GENERAL");
+      return;
+    }
+
+    if (matiere?.id === "quiz") {
+      reinitialiserQuiz();
+      return;
+    }
+
+    if (matiere?.id === "notes") {
+      setEcran("NOTES");
       return;
     }
 
@@ -885,14 +1084,17 @@ export default function App() {
   };
 
   /* =======================================================
-     OUVRIR UNE LEÇON
+     OUVRIR UNE LEÃ‡ON
      ======================================================= */
 
   const ouvrirLecon = (lecon) => {
     const leconComplete =
       estCP1
         ? getLeconCP1(lecon)
-        : lecon;
+        : {
+            ...lecon,
+            ...obtenirContenu(lecon),
+          };
 
     setChapitreSelectionne(
       leconComplete
@@ -970,6 +1172,10 @@ export default function App() {
       quizIndex >=
         banqueQuiz.length - 1
     ) {
+      const scoreFinal = score + (bonneReponse ? 1 : 0);
+
+      setDernierScoreQuiz(scoreFinal);
+      setDernierTotalQuiz(banqueQuiz.length);
       setQuizTermine(true);
     } else {
       setQuizIndex(
@@ -980,7 +1186,7 @@ export default function App() {
   };
 
   /* =======================================================
-     PROTECTION DES ÉCRANS
+     PROTECTION DES Ã‰CRANS
      ======================================================= */
 
   const ecransPublics = [
@@ -1044,7 +1250,7 @@ export default function App() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.logo}>
-            Z.ÉDUCATION
+            ZEGBE EDUCATION CLUB
           </Text>
 
           <Text
@@ -1070,104 +1276,6 @@ export default function App() {
             onChangeText={setPrenoms}
             autoCapitalize="words"
           />
-
-          <Text style={styles.label}>
-            Choisissez votre niveau
-          </Text>
-
-          <TouchableOpacity
-            style={
-              styles.selectInput
-            }
-            onPress={() =>
-              setNiveauOuvert(
-                (ancien) => !ancien
-              )
-            }
-          >
-            <Text
-              style={
-                niveau
-                  ? styles.selectText
-                  : styles.placeholderText
-              }
-            >
-              {niveau ||
-                "Sélectionner le niveau"}
-            </Text>
-
-            <Text
-              style={styles.arrowText}
-            >
-              {niveauOuvert
-                ? "▲"
-                : "▼"}
-            </Text>
-          </TouchableOpacity>
-
-          {niveauOuvert && (
-            <View
-              style={styles.dropdown}
-            >
-              {(Array.isArray(NIVEAUX)
-                ? NIVEAUX
-                : []
-              ).map(
-                (item, index) => {
-                  const valeur =
-                    typeof item ===
-                    "string"
-                      ? item
-                      : item?.id ||
-                        item?.nom;
-
-                  const libelle =
-                    typeof item ===
-                    "string"
-                      ? item
-                      : item?.nom ||
-                        item?.id;
-
-                  if (!valeur) {
-                    return null;
-                  }
-
-                  return (
-                    <TouchableOpacity
-                      key={
-                        String(valeur) +
-                        "-" +
-                        String(index)
-                      }
-                      style={
-                        styles.dropdownItem
-                      }
-                      onPress={() => {
-                        setNiveau(
-                          String(
-                            valeur
-                          )
-                        );
-                        setNiveauOuvert(
-                          false
-                        );
-                      }}
-                    >
-                      <Text
-                        style={
-                          styles.dropdownText
-                        }
-                      >
-                        {String(
-                          libelle
-                        )}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                }
-              )}
-            </View>
-          )}
 
           <TextInput
             style={styles.input}
@@ -1195,29 +1303,54 @@ export default function App() {
             autoCorrect={false}
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Mot de passe"
-            placeholderTextColor="#999"
-            value={motDePasse}
-            onChangeText={
-              setMotDePasse
-            }
-            secureTextEntry
-          />
+          <View style={styles.passwordInputContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Mot de passe"
+              placeholderTextColor="#999"
+              value={motDePasse}
+              onChangeText={setMotDePasse}
+              secureTextEntry={!motDePasseVisible}
+            />
+            <TouchableOpacity
+              style={styles.passwordToggle}
+              onPress={() => setMotDePasseVisible((visible) => !visible)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                motDePasseVisible
+                  ? "Masquer le mot de passe"
+                  : "Afficher le mot de passe"
+              }
+            >
+              <Text style={styles.passwordToggleText}>
+                {motDePasseVisible ? "Masquer" : "Afficher"}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirmer le mot de passe"
-            placeholderTextColor="#999"
-            value={
-              confirmationMotDePasse
+          <TouchableOpacity
+            style={styles.notificationConsent}
+            onPress={() =>
+              setNotificationsAcceptees((acceptees) => !acceptees)
             }
-            onChangeText={
-              setConfirmationMotDePasse
-            }
-            secureTextEntry
-          />
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: notificationsAcceptees }}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                notificationsAcceptees && styles.checkboxChecked,
+              ]}
+            >
+              {notificationsAcceptees ? (
+                <Text style={styles.checkboxMark}>✓</Text>
+              ) : null}
+            </View>
+            <Text style={styles.notificationConsentText}>
+              J'accepte de recevoir des notifications portant sur de nouveaux
+              cours ou des défis
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={
@@ -1288,7 +1421,7 @@ export default function App() {
           style={styles.authContainer}
         >
           <Text style={styles.logo}>
-            Z.ÉDUCATION
+            ZEGBE EDUCATION CLUB
           </Text>
 
           <Text
@@ -1341,6 +1474,74 @@ export default function App() {
             </Text>
           </TouchableOpacity>
 
+          <View style={styles.parentAccessBox}>
+            <Text style={styles.parentAccessTitle}>
+              Accès parent
+            </Text>
+            <Text style={styles.parentAccessText}>
+              Consultez la progression de votre enfant avec son email et son niveau.
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email de l'enfant"
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={emailParent}
+              onChangeText={setEmailParent}
+            />
+            <TouchableOpacity
+              style={styles.selectInput}
+              onPress={() =>
+                setNiveauParentOuvert((ouvert) => !ouvert)
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Sélectionner le niveau de l'enfant"
+            >
+              <Text
+                style={
+                  niveauParent
+                    ? styles.selectText
+                    : styles.placeholderText
+                }
+              >
+                {niveauParent || "Sélectionner le niveau de l'enfant"}
+              </Text>
+              <Text style={styles.arrowText}>
+                {niveauParentOuvert ? "▲" : "▼"}
+              </Text>
+            </TouchableOpacity>
+
+            {niveauParentOuvert && (
+              <View style={styles.dropdown}>
+                {NIVEAUX.map((niveauDisponible) => (
+                  <TouchableOpacity
+                    key={niveauDisponible}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setNiveauParent(niveauDisponible);
+                      setNiveauParentOuvert(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownText}>
+                      {niveauDisponible}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.parentButton}
+              onPress={connecterParent}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.parentButtonText}>
+                VOIR LA PROGRESSION
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
             onPress={() =>
               setEcran("INSCRIPTION")
@@ -1375,6 +1576,73 @@ export default function App() {
     );
   }
 
+  if (ecran === "PARENT_PROGRESS") {
+    const totalQuiz = dernierTotalQuiz;
+    const pourcentageQuiz = totalQuiz > 0
+      ? Math.round((dernierScoreQuiz / totalQuiz) * 100)
+      : 0;
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <ScrollView contentContainerStyle={styles.content}>
+          <Header
+            title="Progression de l'enfant"
+            onBack={quitterAccesParent}
+          />
+
+          <View style={styles.parentHeroCard}>
+            <Text style={styles.parentHeroIcon}>👨‍👩‍👧</Text>
+            <Text style={styles.parentHeroTitle}>
+              Suivi de {eleve?.prenoms || eleve?.nom || "votre enfant"}
+            </Text>
+            <Text style={styles.parentHeroSubtitle}>
+              Niveau : {eleve?.niveau || niveauParent}
+            </Text>
+          </View>
+
+          <View style={styles.progressSummaryCard}>
+            <Text style={styles.progressSummaryTitle}>QUIZ</Text>
+            <Text style={styles.progressScore}>
+              {dernierScoreQuiz} / {totalQuiz}
+            </Text>
+            <Text style={styles.progressSummaryText}>
+              {totalQuiz > 0
+                ? `Dernier résultat : ${pourcentageQuiz}% de réussite.`
+                : "Aucun quiz terminé pour le moment."}
+            </Text>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${pourcentageQuiz}%` },
+                ]}
+              />
+            </View>
+          </View>
+
+          <View style={styles.progressSummaryCard}>
+            <Text style={styles.progressSummaryTitle}>PARCOURS</Text>
+            <Text style={styles.progressSummaryText}>
+              Le niveau de l'enfant est {eleve?.niveau || niveauParent}.
+            </Text>
+            <Text style={styles.progressSummaryText}>
+              Les cours, exercices et quiz sont disponibles depuis son espace élève.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.parentLogoutButton}
+            onPress={quitterAccesParent}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.parentLogoutText}>QUITTER L'ACCÈS PARENT</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   /* =======================================================
      ACCUEIL
      ======================================================= */
@@ -1389,8 +1657,9 @@ export default function App() {
         />
 
         <Header
-          title="Z.ÉDUCATION"
+          title="ZEGBE EDUCATION CLUB"
           onBack={null}
+          centerTitle
         />
 
         <ScrollView
@@ -1424,132 +1693,111 @@ export default function App() {
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.menuCard}
-            onPress={() =>
-              setEcran("MATIERES")
-            }
-          >
-            <Text
-              style={styles.menuIcon}
-            >
-              📚
-            </Text>
+          <Text style={styles.levelsTitle}>Choisissez votre niveau</Text>
+          <Text style={styles.levelsSubtitle}>
+            Sélectionnez une classe pour commencer votre parcours.
+          </Text>
 
-            <View
-              style={
-                styles.menuTextContainer
-              }
-            >
-              <Text
-                style={styles.menuTitle}
+          <View style={styles.levelGrid}>
+            {NIVEAUX.map((niveauDisponible, index) => (
+              <TouchableOpacity
+                key={niveauDisponible}
+                style={[
+                  styles.levelBubble,
+                  styles[`levelBubble${index + 1}`],
+                ]}
+                onPress={() => choisirNiveauAccueil(niveauDisponible)}
+                activeOpacity={0.82}
+                accessibilityRole="button"
+                accessibilityLabel={`Choisir le niveau ${niveauDisponible}`}
               >
-                Matières
-              </Text>
-
-              <Text
-                style={
-                  styles.menuDescription
-                }
-              >
-                Accéder aux matières de votre niveau
-              </Text>
-            </View>
-
-            <Text
-              style={styles.arrow}
-            >
-              ›
-            </Text>
-          </TouchableOpacity>
+                <Text style={styles.levelBubbleText}>
+                  {niveauDisponible}
+                </Text>
+                <Text style={styles.levelBubbleCaption}>Explorer</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <TouchableOpacity
-            style={styles.menuCard}
-            onPress={
-              reinitialiserQuiz
-            }
+            style={styles.logoutButton}
+            onPress={deconnecter}
+            activeOpacity={0.8}
           >
-            <Text
-              style={styles.menuIcon}
-            >
-              🧠
-            </Text>
-
-            <View
-              style={
-                styles.menuTextContainer
-              }
-            >
-              <Text
-                style={styles.menuTitle}
-              >
-                Quiz
-              </Text>
-
-              <Text
-                style={
-                  styles.menuDescription
-                }
-              >
-                Testez vos connaissances
-              </Text>
-            </View>
-
-            <Text
-              style={styles.arrow}
-            >
-              ›
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuCard}
-            onPress={() =>
-              Alert.alert(
-                "Exercices",
-                "Les exercices sont disponibles dans les différentes matières."
-              )
-            }
-          >
-            <Text
-              style={styles.menuIcon}
-            >
-              ✏️
-            </Text>
-
-            <View
-              style={
-                styles.menuTextContainer
-              }
-            >
-              <Text
-                style={styles.menuTitle}
-              >
-                Exercices
-              </Text>
-
-              <Text
-                style={
-                  styles.menuDescription
-                }
-              >
-                Entraînez-vous
-              </Text>
-            </View>
-
-            <Text
-              style={styles.arrow}
-            >
-              ›
-            </Text>
+            <Text style={styles.logoutIcon}>↪</Text>
+            <Text style={styles.logoutText}>Se déconnecter</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
+  if (ecran === "EXERCICES_GENERAL") {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <ScrollView contentContainerStyle={styles.content}>
+          <Header title="Exercices" onBack={retourAccueil} />
+          <Text style={styles.pageTitle}>Exercices {niveauNormalise}</Text>
+          <Text style={styles.pageSubtitle}>
+            Entraînez-vous avec les activités disponibles.
+          </Text>
+          {EXERCICES.map((exercice, index) => (
+            <View key={String(index)} style={styles.exerciseCard}>
+              <Text style={styles.exerciseNumber}>Exercice {index + 1}</Text>
+              <Text style={styles.exerciseQuestion}>
+                {exercice.question}
+              </Text>
+              {Array.isArray(exercice.options) &&
+                exercice.options.map((option, optionIndex) => (
+                  <Text
+                    key={String(optionIndex)}
+                    style={styles.optionText}
+                  >
+                    {String.fromCharCode(65 + optionIndex)}. {option}
+                  </Text>
+                ))}
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (ecran === "NOTES") {
+    const totalNotes = dernierTotalQuiz;
+    const pourcentageNotes = totalNotes > 0
+      ? Math.round((dernierScoreQuiz / totalNotes) * 100)
+      : 0;
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <ScrollView contentContainerStyle={styles.content}>
+          <Header title="Notes" onBack={retourAccueil} />
+          <View style={styles.notesHeroCard}>
+            <Text style={styles.notesIcon}>📊</Text>
+            <Text style={styles.notesTitle}>Mes résultats</Text>
+            <Text style={styles.notesSubtitle}>Niveau {niveauNormalise}</Text>
+          </View>
+          <View style={styles.progressSummaryCard}>
+            <Text style={styles.progressSummaryTitle}>DERNIER QUIZ</Text>
+            <Text style={styles.progressScore}>
+              {dernierScoreQuiz} / {totalNotes}
+            </Text>
+            <Text style={styles.progressSummaryText}>
+              {totalNotes > 0
+                ? `${pourcentageNotes}% de réussite`
+                : "Aucune note enregistrée pour le moment."}
+            </Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   /* =======================================================
-     MATIÈRES
+     MATIÃˆRES
      ======================================================= */
 
   if (ecran === "MATIERES") {
@@ -1562,7 +1810,7 @@ export default function App() {
         />
 
         <Header
-          title="Matières"
+          title="MATIERES"
           onBack={retourAccueil}
         />
 
@@ -1591,9 +1839,10 @@ export default function App() {
                   matiere?.id ||
                   String(index)
                 }
-                style={
-                  styles.subjectCard
-                }
+                style={[
+                  styles.matiereCard,
+                  styles[`matiereCard${(index % 5) + 1}`],
+                ]}
                 onPress={() =>
                   ouvrirMatiere(
                     matiere
@@ -1602,7 +1851,7 @@ export default function App() {
               >
                 <Text
                   style={
-                    styles.subjectIcon
+                    styles.matiereIcon
                   }
                 >
                   {matiere?.icon ||
@@ -1616,7 +1865,7 @@ export default function App() {
                 >
                   <Text
                     style={
-                      styles.subjectTitle
+                      styles.matiereTitle
                     }
                   >
                     {matiere?.nom ||
@@ -1647,7 +1896,7 @@ export default function App() {
   }
 
   /* =======================================================
-     FRANÇAIS
+     FRANÃ‡AIS
      ======================================================= */
   if (ecran === "FRANCAIS") {
     const rubriquesAffichees = estCP1
@@ -1729,9 +1978,10 @@ export default function App() {
                     rubrique?.id ||
                     String(index)
                   }
-                  style={
-                    styles.subjectCard
-                  }
+                  style={[
+                    styles.rubriqueCard,
+                    styles[`rubriqueCard${(index % 6) + 1}`],
+                  ]}
                   onPress={() =>
                     ouvrirRubrique(
                       rubrique
@@ -1740,7 +1990,7 @@ export default function App() {
                 >
                   <Text
                     style={
-                      styles.subjectIcon
+                      styles.rubriqueIcon
                     }
                   >
                     {rubrique?.icon ||
@@ -1754,7 +2004,7 @@ export default function App() {
                   >
                     <Text
                       style={
-                        styles.subjectTitle
+                        styles.rubriqueTitle
                       }
                     >
                       {rubrique?.nom ||
@@ -1814,57 +2064,18 @@ export default function App() {
         </ScrollView>
       </SafeAreaView>
     );
-  }                    >
-                      Progression disponible
-                    </Text>
-                  ) : null}
-                </View>
-
-                <Text
-                  style={styles.arrow}
-                >
-                  ›
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    );
   }
 
   /* =======================================================
-     MATHÉMATIQUES
+     MATHÃ‰MATIQUES
      ======================================================= */
 
   if (
     ecran === "MATHEMATIQUES"
   ) {
-    const rubriquesAffichees =
-      estCP1
-        ? rubriquesMaths
-        : [
-            {
-              id: "nombres",
-              nom: "Nombres",
-              icon: "🔢",
-            },
-            {
-              id: "calcul",
-              nom: "Calcul",
-              icon: "➕",
-            },
-            {
-              id: "problemes",
-              nom: "Problèmes",
-              icon: "🧩",
-            },
-            {
-              id: "geometrie",
-              nom: "Géométrie",
-              icon: "📐",
-            },
-          ];
+    const rubriquesAffichees = estCP
+      ? rubriquesMaths
+      : [];
 
     return (
       <SafeAreaView
@@ -1935,9 +2146,10 @@ export default function App() {
                   rubrique?.id ||
                   String(index)
                 }
-                style={
-                  styles.subjectCard
-                }
+                style={[
+                  styles.rubriqueCard,
+                  styles[`rubriqueCard${(index % 6) + 1}`],
+                ]}
                 onPress={() =>
                   ouvrirRubrique(
                     rubrique
@@ -1946,7 +2158,7 @@ export default function App() {
               >
                 <Text
                   style={
-                    styles.subjectIcon
+                    styles.rubriqueIcon
                   }
                 >
                   {rubrique?.icon ||
@@ -1960,7 +2172,7 @@ export default function App() {
                 >
                   <Text
                     style={
-                      styles.subjectTitle
+                      styles.rubriqueTitle
                     }
                   >
                     {rubrique?.nom ||
@@ -1994,7 +2206,7 @@ export default function App() {
   }
 
   /* =======================================================
-     AUTRES MATIÈRES
+     AUTRES MATIÃˆRES
      ======================================================= */
 
   if (
@@ -2058,10 +2270,9 @@ export default function App() {
     const rubrique =
       rubriqueSelectionnee;
 
-    const contenus = estCP1
-      ? getLeconsRubrique(
-          rubrique
-        )
+    const contenusRubrique = getLeconsRubrique(rubrique);
+    const contenus = contenusRubrique.length > 0
+      ? contenusRubrique
       : (() => {
           let resultat = [];
 
@@ -2152,13 +2363,6 @@ export default function App() {
             styles.content
           }
         >
-          <Text
-            style={styles.pageTitle}
-          >
-            {rubrique?.nom ||
-              "Rubrique"}
-          </Text>
-
           {rubrique?.description ? (
             <Text
               style={styles.pageSubtitle}
@@ -2268,25 +2472,9 @@ export default function App() {
             </>
           )}
 
-          <View
-            style={
-              styles.sectionHeaderRow
-            }
-          >
-            <Text
-              style={
-                styles.sectionTitleInline
-              }
-            >
-              CHAPITRES ET LEÇONS
-            </Text>
-
-            <Text
-              style={styles.countBadge}
-            >
-              {contenus.length}
-            </Text>
-          </View>
+          <Text style={styles.chaptersLessonsTitle}>
+            CHAPITRES ET LEÇONS
+          </Text>
 
           {listeFinale.map(
             (contenu, index) => {
@@ -2321,20 +2509,6 @@ export default function App() {
                 >
                   <View
                     style={
-                      styles.lessonNumber
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.lessonNumberText
-                      }
-                    >
-                      {index + 1}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={
                       styles.lessonInfo
                     }
                   >
@@ -2355,6 +2529,32 @@ export default function App() {
                         {description}
                       </Text>
                     ) : null}
+
+                    {contenu?.contenu ? (
+                      <Text style={styles.lessonBody}>
+                        {contenu.contenu}
+                      </Text>
+                    ) : null}
+
+                    {Array.isArray(contenu?.manipulations) &&
+                      contenu.manipulations.map((activite, activiteIndex) => (
+                        <Text
+                          key={`activite-${activiteIndex}`}
+                          style={styles.lessonActivity}
+                        >
+                          Activité : {String(activite)}
+                        </Text>
+                      ))}
+
+                    {Array.isArray(contenu?.exercices) &&
+                      contenu.exercices.map((exercice, exerciceIndex) => (
+                        <Text
+                          key={`exercice-${exerciceIndex}`}
+                          style={styles.lessonExercise}
+                        >
+                          Exercice {exerciceIndex + 1} : {String(exercice)}
+                        </Text>
+                      ))}
 
                     {contenu?.code ? (
                       <Text
@@ -2433,7 +2633,7 @@ export default function App() {
   }
 
   /* =======================================================
-     ÉVALUATION CP1
+    ÉVALUATION CP1
      ======================================================= */
 
   if (
@@ -2577,7 +2777,7 @@ export default function App() {
   }
 
   /* =======================================================
-     LEÇON
+     LEÃ‡ON
      ======================================================= */
 
   if (ecran === "LECON") {
@@ -2609,6 +2809,13 @@ export default function App() {
         lecon?.exemples
       )
         ? lecon.exemples
+        : [];
+
+    const figures =
+      Array.isArray(
+        lecon?.figures
+      )
+        ? lecon.figures
         : [];
 
     const corriges =
@@ -2724,7 +2931,7 @@ export default function App() {
 
           {explication ? (
             <View
-              style={styles.sectionCard}
+              style={styles.courseCard}
             >
               <Text
                 style={
@@ -2734,10 +2941,8 @@ export default function App() {
                 COURS
               </Text>
 
-              <Text
-                style={
-                  styles.lessonContent
-                }
+              <TexteAvecNotions
+                style={styles.lessonContent}
               >
                 {typeof explication ===
                 "string"
@@ -2745,7 +2950,7 @@ export default function App() {
                   : JSON.stringify(
                       explication
                     )}
-              </Text>
+              </TexteAvecNotions>
             </View>
           ) : null}
 
@@ -2761,22 +2966,20 @@ export default function App() {
                 À RETENIR
               </Text>
 
-              <Text
-                style={styles.ruleText}
-              >
+              <TexteAvecNotions style={styles.ruleText}>
                 {typeof regle ===
                 "string"
                   ? regle
                   : JSON.stringify(
                       regle
                     )}
-              </Text>
+              </TexteAvecNotions>
             </View>
           ) : null}
 
           {exemples.length > 0 && (
             <View
-              style={styles.sectionCard}
+              style={styles.exampleCard}
             >
               <Text
                 style={
@@ -2788,13 +2991,9 @@ export default function App() {
 
               {exemples.map(
                 (exemple, index) => (
-                  <Text
-                    key={String(
-                      index
-                    )}
-                    style={
-                      styles.bulletText
-                    }
+                  <TexteAvecNotions
+                    key={String(index)}
+                    style={styles.exampleText}
                   >
                     •{" "}
                     {typeof exemple ===
@@ -2803,9 +3002,23 @@ export default function App() {
                       : JSON.stringify(
                           exemple
                         )}
-                  </Text>
+                  </TexteAvecNotions>
                 )
               )}
+            </View>
+          )}
+
+          {figures.length > 0 && (
+            <View style={styles.figureCard}>
+              <Text style={styles.sectionTitle}>FIGURES</Text>
+              {figures.map((figure, index) => (
+                <Text
+                  key={String(index)}
+                  style={styles.figureText}
+                >
+                  {String(figure)}
+                </Text>
+              ))}
             </View>
           )}
 
@@ -2854,7 +3067,7 @@ export default function App() {
           {manipulations.length >
             0 && (
             <View
-              style={styles.sectionCard}
+              style={styles.activityCard}
             >
               <Text
                 style={
@@ -2870,9 +3083,7 @@ export default function App() {
                     key={String(
                       index
                     )}
-                    style={
-                      styles.bulletText
-                    }
+                    style={styles.activityDetailText}
                   >
                     •{" "}
                     {typeof item ===
@@ -2901,24 +3112,20 @@ export default function App() {
                 À RETENIR
               </Text>
 
-              <Text
-                style={
-                  styles.retenirText
-                }
-              >
+              <TexteAvecNotions style={styles.retenirText}>
                 {typeof retenir ===
                 "string"
                   ? retenir
                   : JSON.stringify(
                       retenir
                     )}
-              </Text>
+              </TexteAvecNotions>
             </View>
           ) : null}
 
           {corriges.length > 0 && (
             <View
-              style={styles.sectionCard}
+              style={styles.correctionCard}
             >
               <Text
                 style={
@@ -2930,13 +3137,9 @@ export default function App() {
 
               {corriges.map(
                 (item, index) => (
-                  <Text
-                    key={String(
-                      index
-                    )}
-                    style={
-                      styles.bulletText
-                    }
+                  <TexteAvecNotions
+                    key={String(index)}
+                    style={styles.correctionText}
                   >
                     •{" "}
                     {typeof item ===
@@ -2945,7 +3148,7 @@ export default function App() {
                       : JSON.stringify(
                           item
                         )}
-                  </Text>
+                  </TexteAvecNotions>
                 )
               )}
             </View>
@@ -3641,7 +3844,7 @@ export default function App() {
   }
 
   /* =======================================================
-     ÉCRAN PAR DÉFAUT
+     Ã‰CRAN PAR DÃ‰FAUT
      ======================================================= */
 
   return (
@@ -3649,7 +3852,7 @@ export default function App() {
       style={styles.container}
     >
       <Header
-        title="Z.ÉDUCATION"
+        title="ZEGBE EDUCATION CLUB"
         onBack={retourAccueil}
       />
 
@@ -3717,11 +3920,135 @@ const styles = StyleSheet.create({
   },
 
   authTitle: {
-    fontSize: 25,
-    fontWeight: "800",
+    fontSize: 30,
+    fontWeight: "900",
     textAlign: "center",
     marginBottom: 30,
     color: "#173B57",
+    textTransform: "uppercase",
+  },
+
+  parentAccessBox: {
+    backgroundColor: "#EEF5F8",
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#D7E6EC",
+  },
+
+  parentAccessTitle: {
+    color: "#173B57",
+    fontSize: 20,
+    fontWeight: "900",
+    marginBottom: 6,
+    textTransform: "uppercase",
+  },
+
+  parentAccessText: {
+    color: "#687887",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+
+  parentButton: {
+    backgroundColor: "#F2B84B",
+    borderRadius: 10,
+    alignItems: "center",
+    paddingVertical: 13,
+  },
+
+  parentButtonText: {
+    color: "#173B57",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+
+  parentHeroCard: {
+    backgroundColor: "#173B57",
+    borderRadius: 18,
+    padding: 22,
+    marginTop: 18,
+    marginBottom: 16,
+  },
+
+  parentHeroIcon: {
+    fontSize: 34,
+    marginBottom: 8,
+  },
+
+  parentHeroTitle: {
+    color: "#FFFFFF",
+    fontSize: 27,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+
+  parentHeroSubtitle: {
+    color: "#DCEAF4",
+    fontSize: 16,
+    marginTop: 8,
+  },
+
+  progressSummaryCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#E1E8EF",
+  },
+
+  progressSummaryTitle: {
+    color: "#687887",
+    fontSize: 13,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  progressScore: {
+    color: "#173B57",
+    fontSize: 34,
+    fontWeight: "900",
+    marginTop: 8,
+  },
+
+  progressSummaryText: {
+    color: "#4B5F6D",
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 8,
+  },
+
+  progressTrack: {
+    height: 12,
+    backgroundColor: "#E5EBF1",
+    borderRadius: 6,
+    overflow: "hidden",
+    marginTop: 16,
+  },
+
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#F2B84B",
+    borderRadius: 6,
+  },
+
+  parentLogoutButton: {
+    borderWidth: 1,
+    borderColor: "#D77A6B",
+    borderRadius: 12,
+    alignItems: "center",
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+
+  parentLogoutText: {
+    color: "#B84C3D",
+    fontSize: 14,
+    fontWeight: "900",
   },
 
   input: {
@@ -3734,6 +4061,72 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#DCE4EC",
     color: "#173B57",
+  },
+
+  passwordInputContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#DCE4EC",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#173B57",
+  },
+
+  passwordToggle: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+
+  passwordToggleText: {
+    color: "#173B57",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  notificationConsent: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 10,
+    paddingVertical: 6,
+  },
+
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: "#9AAAB5",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+
+  checkboxChecked: {
+    backgroundColor: "#173B57",
+    borderColor: "#173B57",
+  },
+
+  checkboxMark: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "900",
+  },
+
+  notificationConsentText: {
+    flex: 1,
+    color: "#4B5F6D",
+    fontSize: 14,
+    lineHeight: 20,
   },
 
   label: {
@@ -3845,14 +4238,76 @@ const styles = StyleSheet.create({
 
   welcomeTitle: {
     color: "#FFFFFF",
-    fontSize: 23,
+    fontSize: 27,
     fontWeight: "900",
+    textTransform: "uppercase",
   },
 
   welcomeSubtitle: {
     color: "#DCEAF4",
     fontSize: 15,
     marginTop: 7,
+  },
+
+  levelsTitle: {
+    color: "#173B57",
+    fontSize: 26,
+    fontWeight: "900",
+    textAlign: "center",
+    marginTop: 4,
+    textTransform: "uppercase",
+  },
+
+  levelsSubtitle: {
+    color: "#687887",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    marginTop: 6,
+    marginBottom: 18,
+  },
+
+  levelGrid: {
+    width: "100%",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+
+  levelBubble: {
+    width: "47.5%",
+    height: 122,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: "#173B57",
+    shadowOpacity: 0.14,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 4 },
+  },
+
+  levelBubble1: { backgroundColor: "#F4B6C2" },
+  levelBubble2: { backgroundColor: "#F7D794" },
+  levelBubble3: { backgroundColor: "#A8D8EA" },
+  levelBubble4: { backgroundColor: "#B8E0D2" },
+  levelBubble5: { backgroundColor: "#C7CEEA" },
+  levelBubble6: { backgroundColor: "#F3C4FB" },
+
+  levelBubbleText: {
+    color: "#173B57",
+    fontSize: 27,
+    fontWeight: "900",
+  },
+
+  levelBubbleCaption: {
+    color: "#315269",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 5,
   },
 
   menuCard: {
@@ -3876,14 +4331,39 @@ const styles = StyleSheet.create({
   },
 
   menuTitle: {
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 20,
+    fontWeight: "900",
     color: "#173B57",
+    textTransform: "uppercase",
   },
 
   menuDescription: {
     color: "#687887",
     marginTop: 4,
+  },
+
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#D77A6B",
+    borderRadius: 12,
+    paddingVertical: 13,
+    marginTop: 10,
+  },
+
+  logoutIcon: {
+    color: "#B84C3D",
+    fontSize: 22,
+    fontWeight: "800",
+    marginRight: 8,
+  },
+
+  logoutText: {
+    color: "#B84C3D",
+    fontSize: 16,
+    fontWeight: "800",
   },
 
   arrow: {
@@ -3893,10 +4373,12 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
-    fontSize: 25,
+    fontSize: 30,
     fontWeight: "900",
     color: "#173B57",
-    marginBottom: 5,
+    textAlign: "center",
+    marginBottom: 10,
+    textTransform: "uppercase",
   },
 
   pageSubtitle: {
@@ -3922,9 +4404,10 @@ const styles = StyleSheet.create({
 
   programTitle: {
     color: "#FFFFFF",
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "900",
     marginBottom: 8,
+    textTransform: "uppercase",
   },
 
   programText: {
@@ -3950,6 +4433,65 @@ const styles = StyleSheet.create({
     borderColor: "#E1E8EF",
   },
 
+  matiereCard: {
+    borderRadius: 22,
+    padding: 22,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(23,59,87,0.08)",
+    elevation: 3,
+  },
+
+  matiereCard1: { backgroundColor: "#F4B6C2" },
+  matiereCard2: { backgroundColor: "#A8D8EA" },
+  matiereCard3: { backgroundColor: "#F7D794" },
+  matiereCard4: { backgroundColor: "#B8E0D2" },
+  matiereCard5: { backgroundColor: "#C7CEEA" },
+
+  matiereIcon: {
+    fontSize: 42,
+    width: 64,
+  },
+
+  matiereTitle: {
+    fontSize: 25,
+    fontWeight: "900",
+    color: "#173B57",
+    textTransform: "uppercase",
+  },
+
+  rubriqueCard: {
+    borderRadius: 18,
+    padding: 17,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(23,59,87,0.08)",
+    elevation: 2,
+  },
+
+  rubriqueCard1: { backgroundColor: "#FCE1E6" },
+  rubriqueCard2: { backgroundColor: "#D7EFF7" },
+  rubriqueCard3: { backgroundColor: "#FFF0C9" },
+  rubriqueCard4: { backgroundColor: "#DDF2E9" },
+  rubriqueCard5: { backgroundColor: "#E2E5F5" },
+  rubriqueCard6: { backgroundColor: "#F4DDF7" },
+
+  rubriqueIcon: {
+    fontSize: 34,
+    width: 55,
+  },
+
+  rubriqueTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#173B57",
+    textTransform: "uppercase",
+  },
+
   subjectIcon: {
     fontSize: 34,
     width: 55,
@@ -3960,9 +4502,10 @@ const styles = StyleSheet.create({
   },
 
   subjectTitle: {
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 21,
+    fontWeight: "900",
     color: "#173B57",
+    textTransform: "uppercase",
   },
 
   subjectDescription: {
@@ -4002,15 +4545,61 @@ const styles = StyleSheet.create({
   },
 
   lessonTitle: {
-    fontSize: 17,
-    fontWeight: "800",
+    fontSize: 21,
+    fontWeight: "900",
     color: "#173B57",
+    textTransform: "uppercase",
   },
 
   lessonDescription: {
     color: "#687887",
     marginTop: 4,
     lineHeight: 20,
+  },
+
+  lessonBody: {
+    color: "#334955",
+    fontSize: 14,
+    lineHeight: 24,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+
+  figureCard: {
+    backgroundColor: "#EAF4F7",
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: "#CFE3EA",
+  },
+
+  figureText: {
+    color: "#173B57",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+
+  lessonActivity: {
+    color: "#315269",
+    fontSize: 14,
+    lineHeight: 24,
+    marginTop: 12,
+    marginBottom: 4,
+    fontWeight: "700",
+  },
+
+  lessonExercise: {
+    color: "#173B57",
+    fontSize: 14,
+    lineHeight: 24,
+    marginTop: 10,
+    marginBottom: 4,
   },
 
   codeText: {
@@ -4042,10 +4631,12 @@ const styles = StyleSheet.create({
   },
 
   lessonMainTitle: {
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: "900",
     color: "#173B57",
     marginBottom: 15,
+    textAlign: "center",
+    textTransform: "uppercase",
   },
 
   objectiveBox: {
@@ -4090,11 +4681,73 @@ const styles = StyleSheet.create({
     borderColor: "#E1E8EF",
   },
 
+  courseCard: {
+    backgroundColor: "#EAF4FF",
+    padding: 24,
+    borderRadius: 16,
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: "#C8E0F5",
+  },
+
+  exampleCard: {
+    backgroundColor: "#FFF6D9",
+    padding: 24,
+    borderRadius: 16,
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: "#F1D98A",
+  },
+
+  exampleText: {
+    color: "#6B4F12",
+    backgroundColor: "#FFFDF3",
+    borderRadius: 9,
+    padding: 11,
+    marginBottom: 12,
+    fontSize: 16,
+    lineHeight: 25,
+    fontWeight: "800",
+  },
+
+  activityCard: {
+    backgroundColor: "#E6F6ED",
+    padding: 24,
+    borderRadius: 16,
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: "#B8E5C9",
+  },
+
+  activityDetailText: {
+    color: "#245D3A",
+    fontSize: 15,
+    lineHeight: 26,
+    marginBottom: 12,
+  },
+
+  correctionCard: {
+    backgroundColor: "#F1EAFE",
+    padding: 24,
+    borderRadius: 16,
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: "#D7C5F3",
+  },
+
+  correctionText: {
+    color: "#51377A",
+    fontSize: 15,
+    lineHeight: 26,
+    marginBottom: 12,
+  },
+
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 21,
     fontWeight: "900",
     color: "#173B57",
     marginBottom: 12,
+    textTransform: "uppercase",
   },
 
   sectionHeaderRow: {
@@ -4105,9 +4758,20 @@ const styles = StyleSheet.create({
   },
 
   sectionTitleInline: {
-    fontSize: 18,
+    fontSize: 21,
     fontWeight: "900",
     color: "#173B57",
+    textTransform: "uppercase",
+  },
+
+  chaptersLessonsTitle: {
+    color: "#B42318",
+    fontSize: 22,
+    fontWeight: "900",
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 18,
+    textTransform: "uppercase",
   },
 
   countBadge: {
@@ -4135,8 +4799,14 @@ const styles = StyleSheet.create({
 
   lessonContent: {
     fontSize: 16,
-    lineHeight: 27,
+    lineHeight: 31,
     color: "#334955",
+    letterSpacing: 0.2,
+  },
+
+  notionImportant: {
+    color: "#C2410C",
+    fontWeight: "900",
   },
 
   ruleCard: {
@@ -4209,8 +4879,9 @@ const styles = StyleSheet.create({
 
   evaluationTitle: {
     color: "#FFFFFF",
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "900",
+    textTransform: "uppercase",
   },
 
   evaluationText: {
@@ -4233,11 +4904,12 @@ const styles = StyleSheet.create({
   },
 
   evaluationMainTitle: {
-    fontSize: 23,
+    fontSize: 29,
     fontWeight: "900",
     color: "#173B57",
     textAlign: "center",
     marginBottom: 15,
+    textTransform: "uppercase",
   },
 
   evaluationMainText: {
@@ -4268,9 +4940,10 @@ const styles = StyleSheet.create({
   },
 
   activityTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "900",
     color: "#173B57",
+    textTransform: "uppercase",
   },
 
   activityText: {
@@ -4285,6 +4958,31 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderWidth: 1,
     borderColor: "#E1E8EF",
+  },
+
+  notesHeroCard: {
+    backgroundColor: "#B8E0D2",
+    borderRadius: 20,
+    padding: 22,
+    marginBottom: 16,
+  },
+
+  notesIcon: {
+    fontSize: 34,
+    marginBottom: 8,
+  },
+
+  notesTitle: {
+    color: "#173B57",
+    fontSize: 29,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+
+  notesSubtitle: {
+    color: "#315269",
+    fontSize: 15,
+    marginTop: 6,
   },
 
   exerciseNumber: {
@@ -4422,3 +5120,4 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 });
+
